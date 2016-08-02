@@ -1,0 +1,88 @@
+/**
+ * Copyright (c) 2016-present, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ */
+
+package dhcplb
+
+import (
+	"github.com/golang/glog"
+	"net"
+	"sync"
+	"sync/atomic"
+	"unsafe"
+)
+
+// UDP acceptor
+type serverImpl struct {
+	version       int
+	conn          *net.UDPConn
+	logger        loggerHelper
+	config        *Config
+	stableServers []*DHCPServer
+	rcServers     []*DHCPServer
+	bufPool       sync.Pool
+}
+
+// returns a pointer to the current config struct, so that if it does get changed while being used,
+// it shouldn't affect the caller and this copy struct should be GC'ed when it falls out of scope
+func (s *serverImpl) getConfig() *Config {
+	return s.config
+}
+
+func (s *serverImpl) ListenAndServe() error {
+	s.StartUpdatingServerList()
+
+	glog.Infof("Started thrift server, processing DHCP requests...")
+
+	for {
+		handleConnection(s.conn, s.getConfig(), s.logger, &s.bufPool)
+	}
+}
+
+func (s *serverImpl) SetConfig(config *Config) {
+	glog.Infof("Updating server config")
+	// update server list because Algorithm instance was recreated
+	config.Algorithm.updateStableServerList(s.stableServers)
+	config.Algorithm.updateRCServerList(s.rcServers)
+	atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&s.config)), unsafe.Pointer(config))
+	glog.Infof("Updated server config")
+}
+
+func (s *serverImpl) HasServers() bool {
+	return len(s.stableServers) > 0 || len(s.rcServers) > 0
+}
+
+// NewServer initialized a Server before returning it.
+func NewServer(config *Config, version int, personalizedLogger PersonalizedLogger) (Server, error) {
+	conn, err := net.ListenUDP("udp", config.Addr)
+	if err != nil {
+		return nil, err
+	}
+
+	// setup logger
+	var loggerHelper = &loggerHelperImpl{
+		version:            version,
+		personalizedLogger: personalizedLogger,
+	}
+
+	server := &serverImpl{
+		version: version,
+		conn:    conn,
+		logger:  loggerHelper,
+		config:  config,
+	}
+
+	// pool to reuse packet buffers
+	server.bufPool = sync.Pool{
+		New: func() interface{} {
+			return make([]byte, server.getConfig().PacketBufSize)
+		},
+	}
+
+	return server, nil
+}
