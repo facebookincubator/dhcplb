@@ -52,7 +52,7 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 		} else if msg.Version == 6 {
 			packet := dhcplb.Packet6(msg.Packet)
 			sample["type"] = packet.Type().String()
-			xid, _ := packet.XId()
+			xid, _ := packet.XID()
 			sample["xid"] = fmt.Sprintf("%#06x", xid)
 			duid, _ := packet.Duid()
 			sample["duid"] = dhcplb.FormatID(duid)
