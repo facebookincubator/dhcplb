@@ -147,10 +147,7 @@ see [Getting Started](docs/getting-started.md).
 
 # TODOs / future improvements
 
-- [ ] Add support for broadcast/multicast DISCOVERY/SOLICIT packets.
-- [ ] Investigating using pool of goroutines rather than one per request, to improve memory efficiency.
-- [ ] Improved LB algorithm (at the moment, hashing the mac address, it's good but not perfectly balanced).
-- [ ] Increase test coverage.
+TODOs and improvements are tracked [here](https://github.com/facebookincubator/dhcplb/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
 
 PRs are welcome!
 
