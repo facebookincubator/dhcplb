@@ -78,9 +78,12 @@ const (
 )
 
 func (p Packet6) getOption(option OptionType) ([]byte, error) {
+	if len(p) < 4 {
+		return nil, fmt.Errorf("Packet is less than 4 bytes long, cannot get option %s", option.String())
+	}
 	index := 4 // start of options are 4 bytes into a client/server message
 	// start of options are 34 bytes into a Relay message
-	if t := p.Type(); t == RelayForw || t == RelayRepl {
+	if t, err := p.Type(); err == nil && t == RelayForw || t == RelayRepl {
 		index = 34
 	}
 	for index+4 < len(p) {
@@ -105,7 +108,11 @@ func (p Packet6) getOption(option OptionType) ([]byte, error) {
 }
 
 func (p Packet6) dhcp6message() (Packet6, error) {
-	switch p.Type() {
+	t, err := p.Type()
+	if err != nil {
+		return nil, err
+	}
+	switch t {
 	case RelayForw, RelayRepl:
 		relayMsg, err := p.getOption(RelayMessage)
 		if err != nil {
@@ -118,7 +125,12 @@ func (p Packet6) dhcp6message() (Packet6, error) {
 }
 
 // Type returns the MessageType for a Packet6
-func (p Packet6) Type() MessageType { return MessageType(p[0]) }
+func (p Packet6) Type() (MessageType, error) {
+	if len(p) == 0 {
+		return 0, errors.New("Packet is empty, cannot get message type")
+	}
+	return MessageType(p[0]), nil
+}
 
 // XID returns the Transaction ID for a Packet6
 func (p Packet6) XID() (uint32, error) {
@@ -131,7 +143,7 @@ func (p Packet6) XID() (uint32, error) {
 
 // Hops returns the number of hops for a Packet6
 func (p Packet6) Hops() (byte, error) {
-	if t := p.Type(); t != RelayForw && t != RelayRepl {
+	if t, err := p.Type(); err != nil || (t != RelayForw && t != RelayRepl) {
 		return 0, errors.New("Not a RelayForw or RelayRepl, does not have hopcount")
 	}
 	return p[1], nil
@@ -140,7 +152,7 @@ func (p Packet6) Hops() (byte, error) {
 // LinkAddr returns the LinkAddr field in the RelayInfo header. Will return
 // error if the message is not a RelayForw or RelayRepl.
 func (p Packet6) LinkAddr() (net.IP, error) {
-	if t := p.Type(); t != RelayForw && t != RelayRepl {
+	if t, err := p.Type(); err != nil || (t != RelayForw && t != RelayRepl) {
 		return nil, errors.New("Not a RelayForw or RelayRepl, does not have link-address")
 	}
 	return net.IP(p[2:18]), nil
@@ -149,7 +161,7 @@ func (p Packet6) LinkAddr() (net.IP, error) {
 // PeerAddr returns the PeerAddr field in the RelayInfo header. Will return
 // error if the message is not a RelayForw or RelayRepl.
 func (p Packet6) PeerAddr() (net.IP, error) {
-	if t := p.Type(); t != RelayForw && t != RelayRepl {
+	if t, err := p.Type(); err != nil || (t != RelayForw && t != RelayRepl) {
 		return nil, errors.New(
 			"Not a RelayForw or RelayRepl, does not have peer-address")
 	}

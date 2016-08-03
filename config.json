@@ -8,7 +8,6 @@
     "free_conn_timeout": 30,
     "algorithm": "xid",
     "host_sourcer": "file:hosts-v4.txt",
-    "packet_buf_pool_size": 1000,
     "rc_ratio": 0
   },
   "v6": {
@@ -20,7 +19,6 @@
     "free_conn_timeout": 30,
     "algorithm": "xid",
     "host_sourcer": "file:hosts-v6.txt",
-    "packet_buf_pool_size": 1000,
     "rc_ratio": 0
   }
 }

@@ -16,7 +16,6 @@ Configuration is provided to the program via a JSON file
     "free_conn_timeout": 30, // how long to wait after removal before closing a connection to a server (in seconds)
     "algorithm": "xid", // balancing algorithm, supported are xid and rr (client hash and roundrobin)
     "host_sourcer": "file:hosts-v4.txt", // load DHCP server list from hosts-v4.txt
-    "packet_buf_pool_size": 1000, // how many buffers to allocate for incoming connections
     "rc_ratio": 0 // what percentage of requests should go to RC servers
   },
   ... (same options for "v6") ...

@@ -155,8 +155,9 @@ func TestEncapsulateSanity(t *testing.T) {
 	encapsulated := packet.Encapsulate(nil)
 	// dhcp6message type should be SOLICIT
 	msg, err := encapsulated.dhcp6message()
-	if msg.Type() != Solicit {
-		t.Fatalf("Expected type %s, got %s", Solicit, msg.Type())
+	msgType, _ := msg.Type()
+	if msgType != Solicit {
+		t.Fatalf("Expected type %s, got %s", Solicit, msgType)
 	}
 	// XID should be the same after encapsulating
 	encXid, err := encapsulated.XID()
@@ -175,8 +176,9 @@ func TestUnwindXid(t *testing.T) {
 		t.Fatalf("Failed to extract message")
 	}
 	// type should be ADVERTISE
-	if msg.Type() != Advertise {
-		t.Fatalf("Expected type %s but got %s", Advertise, msg.Type())
+	msgType, _ := msg.Type()
+	if msgType != Advertise {
+		t.Fatalf("Expected type %s but got %s", Advertise, msgType)
 	}
 	// XID should be 0x00cd2e
 	xid, err := msg.XID()

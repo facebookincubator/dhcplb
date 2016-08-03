@@ -197,7 +197,12 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 	start := time.Now()
 	packet := Packet6(buffer)
 
-	if packet.Type() == RelayRepl {
+	t, err := packet.Type()
+	if err != nil {
+		glog.Errorf("Failed to get packet type: %s", err)
+		return
+	}
+	if t == RelayRepl {
 		handleV6RelayRepl(logger, start, packet, peer)
 		return
 	}
@@ -226,7 +231,6 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 		return
 	}
 	message.Mac = mac
-	t := packet.Type()
 
 	hops, _ := packet.Hops()
 	link, _ := packet.LinkAddr()
