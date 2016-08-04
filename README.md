@@ -21,7 +21,7 @@ Facebook's DHCP infrastructure was [presented at SRECon15 Ireland](https://www.u
 
 * All the relayer implementations available on the internet lack the load
 balancing functionality.
-* Having control of the code gives you the the ability to
+* Having control of the code gives you the the ability to:
   * perform A/B testing on new builds of our DHCP server
   * implement override mechanism
   * implement anything additional you need
@@ -53,12 +53,9 @@ in that same region.
 
 The configuration for `dhcplb` consists of 3 files:
 
-* json config file: contains the main configuration for the server as explained
-   in the [Getting Started](docs/getting-started.md) section
- * host lists file: contains a list of dhcp servers, one per line, those are
-   the servers `dhcplb` will try to balance on
- * overrides file: a file containing per mac overrides. See
-   [Getting Started](docs/getting-started.md) section.
+* json config file: contains the main configuration for the server as explained in the [Getting Started](docs/getting-started.md) section
+* host lists file: contains a list of dhcp servers, one per line, those are the servers `dhcplb` will try to balance on
+* overrides file: a file containing per mac overrides. See the [Getting Started](docs/getting-started.md) section.
 
 # What does it support?
 
