@@ -16,7 +16,10 @@ Configuration is provided to the program via a JSON file
     "free_conn_timeout": 30, // how long to wait after removal before closing a connection to a server (in seconds)
     "algorithm": "xid", // balancing algorithm, supported are xid and rr (client hash and roundrobin)
     "host_sourcer": "file:hosts-v4.txt", // load DHCP server list from hosts-v4.txt
-    "rc_ratio": 0 // what percentage of requests should go to RC servers
+    "rc_ratio": 0, // what percentage of requests should go to RC servers
+    "throttle_cache_size": 1024, // cache size for number of throttling objects for unique clients
+    "throttle_cache_rate": 128, // rate value for throttling cache invalidation (per second)
+    "throttle_rate_per_conn": 256 // rate value for request per client (per second)
   },
   ... (same options for "v6") ...
 ```
@@ -51,6 +54,22 @@ will be sent to the DHCP server at `173.252.90.132`, and requests from MAC
 be picked according to the balancing algorithm's selection from the list of
 servers returned by the `GetServersFromTier(tier string)` function of the
 `DHCPServerSourcer` being used.)
+
+
+Throttling
+----------
+
+`dhcplb` keeps track of the request rate per second for each client.
+It can be set through `throttle_rate_per_conn` configuration parameter.
+Requests exceeding this limit will be logged and dropped. For 0 or negative
+values no throttling will be done, and no cache will be created.
+
+An LRU cache is used to keep track of rate information for each client. Cache
+size can be set through `throttle_cache_size`. To prevent fast cache
+invalidation from malicious clients, `dhcplb` also keeps track of the number of
+new clients being added to the cache (per second). This behavior can be set
+through `throttle_cache_rate` configuration parameter. For 0 or negative values
+no cache rate limiting will be done.
 
 
 A/B testing

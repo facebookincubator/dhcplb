@@ -8,7 +8,10 @@
     "free_conn_timeout": 30,
     "algorithm": "xid",
     "host_sourcer": "file:hosts-v4.txt",
-    "rc_ratio": 0
+    "rc_ratio": 0,
+    "throttle_cache_size": 1024,
+    "throttle_cache_rate": 128,
+    "throttle_rate_per_conn": 256
   },
   "v6": {
     "version": 6,
@@ -19,6 +22,9 @@
     "free_conn_timeout": 30,
     "algorithm": "xid",
     "host_sourcer": "file:hosts-v6.txt",
-    "rc_ratio": 0
+    "rc_ratio": 0,
+    "throttle_cache_size": 1024,
+    "throttle_cache_rate": 128,
+    "throttle_rate_per_conn": 256
   }
 }

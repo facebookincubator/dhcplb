@@ -31,15 +31,24 @@ const (
 	ErrGi0      = "E_GI_0"
 	ErrParse    = "E_PARSE"
 	ErrNoServer = "E_NO_SERVER"
+	ErrConnRate = "E_CONN_RATE"
 )
 
-func handleConnection(conn *net.UDPConn, config *Config, logger loggerHelper, bufPool *sync.Pool) {
+func handleConnection(conn *net.UDPConn, config *Config, logger loggerHelper, bufPool *sync.Pool, throttle Throttle) {
 	buffer := bufPool.Get().([]byte)
 	bytesRead, peer, err := conn.ReadFromUDP(buffer)
 	if err != nil || bytesRead == 0 {
 		msg := "error reading from %s: %v"
 		glog.Errorf(msg, peer, err)
 		logger.LogErr(time.Now(), nil, nil, peer, ErrRead, err)
+		return
+	}
+
+	// Check for connection rate per IP address
+	ok, err := throttle.OK(peer.IP.String())
+	if !ok {
+		bufPool.Put(buffer)
+		logger.LogErr(time.Now(), nil, nil, peer, ErrConnRate, err)
 		return
 	}
 

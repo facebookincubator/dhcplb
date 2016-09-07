@@ -50,3 +50,11 @@ type DHCPServerSourcer interface {
 	GetRCServers() ([]*DHCPServer, error)
 	GetServersFromTier(tier string) ([]*DHCPServer, error)
 }
+
+// Throttle is interface that implements rate limiting per key
+type Throttle interface {
+	// Returns whether the rate is below max for a key
+	OK(interface{}) (bool, error)
+	// Returns the number of items
+	len() int
+}

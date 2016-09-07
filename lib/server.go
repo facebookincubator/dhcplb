@@ -26,6 +26,7 @@ type serverImpl struct {
 	stableServers []*DHCPServer
 	rcServers     []*DHCPServer
 	bufPool       sync.Pool
+	throttle      Throttle
 }
 
 // returns a pointer to the current config struct, so that if it does get changed while being used,
@@ -40,7 +41,7 @@ func (s *serverImpl) ListenAndServe() error {
 	glog.Infof("Started thrift server, processing DHCP requests...")
 
 	for {
-		handleConnection(s.conn, s.getConfig(), s.logger, &s.bufPool)
+		handleConnection(s.conn, s.getConfig(), s.logger, &s.bufPool, s.throttle)
 	}
 }
 
@@ -83,6 +84,14 @@ func NewServer(config *Config, version int, personalizedLogger PersonalizedLogge
 			return make([]byte, server.getConfig().PacketBufSize)
 		},
 	}
+
+	glog.Infof("Setting up throttle: Cache Size: %d - Cache Rate: %d - Request Rate: %d",
+		config.TCacheSize, config.TCacheRate, config.TRatePerConn)
+	throttle, err := NewThrottle(config.TCacheSize, config.TCacheRate, config.TRatePerConn)
+	if err != nil {
+		return nil, err
+	}
+	server.throttle = throttle
 
 	return server, nil
 }

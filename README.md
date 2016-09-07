@@ -96,6 +96,7 @@ $ go get github.com/fsnotify/fsnotify
 $ go get github.com/golang/glog
 $ go get github.com/krolaw/dhcp4
 $ go get github.com/facebookgo/ensure
+$ go get github.com/hashicorp/golang-lru
 ```
 
 # Installation
@@ -158,7 +159,7 @@ production ready system.
 `dhcplb` has been deployed globally and currently balances all production DHCP
 traffic efficiently across our KEA DHCP servers.
 
-Hackathon project members:
+Original Hackathon project members:
 
 * Angelo Failla ([@pallotron](https://github.com/pallotron)), Production Engineer
 * Roman Gushchin ([@rgushchin](https://github.com/rgushchin)), Production Engineer
@@ -170,3 +171,7 @@ Internship project members:
 * Vinnie Magro ([@vmagro](https://github.com/vmagro)), Production Engineer intern
 * Angelo Failla (@pallotron), Intern mentor, Production Engineer
 * Mateusz Kaczanowski (@mkaczanowski), Production Engineer
+
+Other contributors:
+
+* Emre Cantimur, Production Engineer, Facebook, Throttling support
