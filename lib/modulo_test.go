@@ -15,7 +15,7 @@ import (
 
 func Test_Empty(t *testing.T) {
 	subject := new(modulo)
-	_, err := subject.selectDhcpServer(&DHCPMessage{
+	_, err := subject.selectRatioBasedDhcpServer(&DHCPMessage{
 		ClientID: []byte{0},
 	})
 	if err == nil {
@@ -44,7 +44,7 @@ func Test_Hash(t *testing.T) {
 		msg := DHCPMessage{
 			ClientID: v,
 		}
-		server, err := subject.selectDhcpServer(&msg)
+		server, err := subject.selectRatioBasedDhcpServer(&msg)
 		if err != nil {
 			t.Fatalf("Unexpected error selecting server: %s", err)
 		}

@@ -98,7 +98,7 @@ the `dhcpBalancingAlgorithm` interface:
 ```go
 type dhcpBalancingAlgorithm interface {
 	selectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error)
-	selectDhcpServer(message *DHCPMessage) (*DHCPServer, error)
+	selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error)
 	updateStableServerList(list []*DHCPServer) error
 	updateRCServerList(list []*DHCPServer) error
 	setRCRatio(ratio uint32)

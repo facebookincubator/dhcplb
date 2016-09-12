@@ -43,7 +43,7 @@ func (rr *roundRobin) selectServerFromList(list []*DHCPServer, message *DHCPMess
 	return server, nil
 }
 
-func (rr *roundRobin) selectDhcpServer(message *DHCPMessage) (server *DHCPServer, err error) {
+func (rr *roundRobin) selectRatioBasedDhcpServer(message *DHCPMessage) (server *DHCPServer, err error) {
 	// hash the clientid to see if it should be RC/Stable
 	hasher := fnv.New32a()
 	hasher.Write(message.ClientID)

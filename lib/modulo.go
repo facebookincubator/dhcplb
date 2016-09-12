@@ -40,7 +40,7 @@ func (m *modulo) selectServerFromList(list []*DHCPServer, message *DHCPMessage) 
 	return list[hash%uint32(len(list))], nil
 }
 
-func (m *modulo) selectDhcpServer(message *DHCPMessage) (*DHCPServer, error) {
+func (m *modulo) selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error) {
 	hasher := fnv.New32a()
 	hasher.Write(message.ClientID)
 	hash := hasher.Sum32()
