@@ -38,6 +38,7 @@ func handleConnection(conn *net.UDPConn, config *Config, logger loggerHelper, bu
 	buffer := bufPool.Get().([]byte)
 	bytesRead, peer, err := conn.ReadFromUDP(buffer)
 	if err != nil || bytesRead == 0 {
+		bufPool.Put(buffer)
 		msg := "error reading from %s: %v"
 		glog.Errorf(msg, peer, err)
 		logger.LogErr(time.Now(), nil, nil, peer, ErrRead, err)
