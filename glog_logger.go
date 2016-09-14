@@ -11,6 +11,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/facebookincubator/dhcplb/lib"
 	"github.com/golang/glog"
 	"github.com/krolaw/dhcp4"
@@ -51,7 +52,8 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 			sample["client_mac"] = packet.CHAddr().String()
 		} else if msg.Version == 6 {
 			packet := dhcplb.Packet6(msg.Packet)
-			sample["type"] = packet.Type().String()
+			pt, _ := packet.Type()
+			sample["type"] = pt.String()
 			xid, _ := packet.XID()
 			sample["xid"] = fmt.Sprintf("%#06x", xid)
 			duid, _ := packet.Duid()
