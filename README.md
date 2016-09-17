@@ -1,4 +1,4 @@
-# What is dhcplb?
+# What is dhcplb? [![codebeat badge](https://codebeat.co/badges/c89d337e-2147-41a2-a00e-a553dc4eeb23)](https://codebeat.co/projects/github-com-facebookincubator-dhcplb)
 
 `dhcplb` is Facebook's implementation of a DHCP v4/v6 relayer with load
 balancing capabilities.
