@@ -78,10 +78,10 @@ func NewFileSourcer(stablePath, rcPath string, version int) (*FileSourcer, error
 // GetServersFromTier returns a list of DHCPServer from a file
 func (fs *FileSourcer) GetServersFromTier(path string) ([]*DHCPServer, error) {
 	inputFile, err := os.Open(path)
-	defer inputFile.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer inputFile.Close()
 	scanner := bufio.NewScanner(inputFile)
 
 	var servers []*DHCPServer
