@@ -25,19 +25,19 @@ type MessageType byte
 
 // Various message types for DHCPv6
 const (
-	Solicit            MessageType = 1
-	Advertise          MessageType = 2
-	Request            MessageType = 3
-	Confirm            MessageType = 4
-	Renew              MessageType = 5
-	Rebind             MessageType = 6
-	Reply              MessageType = 7
-	Release            MessageType = 8
-	Decline            MessageType = 9
-	Reconfigure        MessageType = 10
-	InformationRequest MessageType = 11
-	RelayForw          MessageType = 12
-	RelayRepl          MessageType = 13
+	Solicit MessageType = iota + 1
+	Advertise
+	Request
+	Confirm
+	Renew
+	Rebind
+	Reply
+	Release
+	Decline
+	Reconfigure
+	InformationRequest
+	RelayForw
+	RelayRepl
 )
 
 // OptionType represents various dhcpv6 option types
@@ -46,25 +46,25 @@ type OptionType uint16
 
 // List of Option Types
 const (
-	ClientID              OptionType = 1
-	ServerID              OptionType = 2
-	IdentAssocNonTempAddr OptionType = 3
-	IdentAssocTempAddr    OptionType = 4
-	IaAddr                OptionType = 5
-	OptionRequest         OptionType = 6
-	Preference            OptionType = 7
-	ElapsedTime           OptionType = 8
-	RelayMessage          OptionType = 9
-	Auth                  OptionType = 11
-	ServerUnicast         OptionType = 12
-	StatusCode            OptionType = 13
-	RapidCommit           OptionType = 14
-	UserClass             OptionType = 15
-	VendorClass           OptionType = 16
-	VendorOpts            OptionType = 17
-	InterfaceID           OptionType = 18
-	ReconfigureMessage    OptionType = 19
-	ReconfigureAccept     OptionType = 20
+	ClientID OptionType = iota + 1
+	ServerID
+	IdentAssocNonTempAddr
+	IdentAssocTempAddr
+	IaAddr
+	OptionRequest
+	Preference
+	ElapsedTime
+	RelayMessage
+	Auth OptionType = iota + 2
+	ServerUnicast
+	StatusCode
+	RapidCommit
+	UserClass
+	VendorClass
+	VendorOpts
+	InterfaceID
+	ReconfigureMessage
+	ReconfigureAccept
 )
 
 // DuidType is a uint16 integer, there can be 3 of them, see the enum below.
@@ -72,9 +72,9 @@ type DuidType uint16
 
 // there are 3 types of DUIDs
 const (
-	DuidLLT DuidType = 1
-	DuidEN  DuidType = 2
-	DuidLL  DuidType = 3
+	DuidLLT DuidType = iota + 1
+	DuidEN
+	DuidLL
 )
 
 func (p Packet6) getOption(option OptionType) ([]byte, error) {
