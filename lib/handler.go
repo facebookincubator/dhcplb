@@ -45,14 +45,6 @@ func handleConnection(conn *net.UDPConn, config *Config, logger loggerHelper, bu
 		return
 	}
 
-	// Check for connection rate per IP address
-	ok, err := throttle.OK(peer.IP.String())
-	if !ok {
-		bufPool.Put(buffer)
-		logger.LogErr(time.Now(), nil, nil, peer, ErrConnRate, err)
-		return
-	}
-
 	go func() {
 		defer func() {
 			// always release this routine's buffer back to the pool
@@ -68,9 +60,9 @@ func handleConnection(conn *net.UDPConn, config *Config, logger loggerHelper, bu
 		}()
 
 		if config.Version == 4 {
-			handleRawPacketV4(logger, config, buffer[:bytesRead], peer)
+			handleRawPacketV4(logger, config, buffer[:bytesRead], peer, throttle)
 		} else if config.Version == 6 {
-			handleRawPacketV6(logger, config, buffer[:bytesRead], peer)
+			handleRawPacketV6(logger, config, buffer[:bytesRead], peer, throttle)
 		}
 	}()
 }
@@ -161,8 +153,17 @@ func handleTierOverride(config *Config, tier string, message *DHCPMessage) (*DHC
 	return server, nil
 }
 
-func sendToServer(logger loggerHelper, start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr) error {
-	err := server.sendTo(packet)
+func sendToServer(logger loggerHelper, start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr, throttle Throttle) error {
+
+	// Check for connection rate
+	ok, err := throttle.OK(server.Address.String())
+	if !ok {
+		glog.Errorf("Error writing to server %s, drop due to throttling", server.Hostname)
+		logger.LogErr(time.Now(), server, packet, peer, ErrConnRate, err)
+		return err
+	}
+
+	err = server.sendTo(packet)
 	if err != nil {
 		glog.Errorf("Error writing to server %s, drop due to %s", server.Hostname, err)
 		logger.LogErr(start, server, packet, peer, ErrWrite, err)
@@ -177,7 +178,7 @@ func sendToServer(logger loggerHelper, start time.Time, server *DHCPServer, pack
 	return nil
 }
 
-func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr) {
+func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr, throttle Throttle) {
 	// runs in a separate go routine
 	start := time.Now()
 	var message DHCPMessage
@@ -199,10 +200,10 @@ func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer 
 		return
 	}
 
-	sendToServer(logger, start, server, packet, peer)
+	sendToServer(logger, start, server, packet, peer, throttle)
 }
 
-func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr) {
+func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr, throttle Throttle) {
 	// runs in a separate go routine
 	start := time.Now()
 	packet := Packet6(buffer)
@@ -255,7 +256,7 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 	}
 
 	relayMsg := packet.Encapsulate(peer.IP)
-	sendToServer(logger, start, server, relayMsg, peer)
+	sendToServer(logger, start, server, relayMsg, peer, throttle)
 }
 
 func handleV6RelayRepl(logger loggerHelper, start time.Time, packet Packet6, peer *net.UDPAddr) {

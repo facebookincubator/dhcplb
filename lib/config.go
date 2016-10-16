@@ -43,7 +43,7 @@ type Config struct {
 	Extras               interface{}
 	TCacheSize           int
 	TCacheRate           int
-	TRatePerConn         int
+	TRate                int
 }
 
 // Override represents the dhcp server or the group of dhcp servers (tier) we
@@ -181,7 +181,7 @@ type configSpec struct {
 	Extras               json.RawMessage `json:"extras"`
 	TCacheSize           int             `json:"throttle_cache_size"`
 	TCacheRate           int             `json:"throttle_cache_rate"`
-	TRatePerConn         int             `json:"throttle_rate_per_conn"`
+	TRate                int             `json:"throttle_rate"`
 }
 
 type combinedconfigSpec struct {
@@ -278,7 +278,7 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 		Extras:          extras,
 		TCacheSize:      spec.TCacheSize,
 		TCacheRate:      spec.TCacheRate,
-		TRatePerConn:    spec.TRatePerConn,
+		TRate:           spec.TRate,
 	}, nil
 }
 

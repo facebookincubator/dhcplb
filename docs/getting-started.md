@@ -19,7 +19,7 @@ Configuration is provided to the program via a JSON file
     "rc_ratio": 0, // what percentage of requests should go to RC servers
     "throttle_cache_size": 1024, // cache size for number of throttling objects for unique clients
     "throttle_cache_rate": 128, // rate value for throttling cache invalidation (per second)
-    "throttle_rate_per_conn": 256 // rate value for request per client (per second)
+    "throttle_rate": 256 // rate value for request per second
   },
   ... (same options for "v6") ...
 ```
@@ -59,13 +59,15 @@ servers returned by the `GetServersFromTier(tier string)` function of the
 Throttling
 ----------
 
-`dhcplb` keeps track of the request rate per second for each client.
-It can be set through `throttle_rate_per_conn` configuration parameter.
+`dhcplb` keeps track of the request rate per second for each backend DHCP
+server.
+It can be set through `throttle_rate` configuration parameter.
 Requests exceeding this limit will be logged and dropped. For 0 or negative
 values no throttling will be done, and no cache will be created.
 
-An LRU cache is used to keep track of rate information for each client. Cache
-size can be set through `throttle_cache_size`. To prevent fast cache
+An LRU cache is used to keep track of rate information for each backend DHCP
+server.
+Cache size can be set through `throttle_cache_size`. To prevent fast cache
 invalidation from malicious clients, `dhcplb` also keeps track of the number of
 new clients being added to the cache (per second). This behavior can be set
 through `throttle_cache_rate` configuration parameter. For 0 or negative values
