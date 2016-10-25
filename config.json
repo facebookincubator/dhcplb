@@ -11,7 +11,7 @@
     "rc_ratio": 0,
     "throttle_cache_size": 1024,
     "throttle_cache_rate": 128,
-    "throttle_rate_per_conn": 256
+    "throttle_rate": 256
   },
   "v6": {
     "version": 6,
@@ -25,6 +25,6 @@
     "rc_ratio": 0,
     "throttle_cache_size": 1024,
     "throttle_cache_rate": 128,
-    "throttle_rate_per_conn": 256
+    "throttle_rate": 256
   }
 }

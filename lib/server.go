@@ -86,8 +86,8 @@ func NewServer(config *Config, version int, personalizedLogger PersonalizedLogge
 	}
 
 	glog.Infof("Setting up throttle: Cache Size: %d - Cache Rate: %d - Request Rate: %d",
-		config.TCacheSize, config.TCacheRate, config.TRatePerConn)
-	throttle, err := NewThrottle(config.TCacheSize, config.TCacheRate, config.TRatePerConn)
+		config.TCacheSize, config.TCacheRate, config.TRate)
+	throttle, err := NewThrottle(config.TCacheSize, config.TCacheRate, config.TRate)
 	if err != nil {
 		return nil, err
 	}
