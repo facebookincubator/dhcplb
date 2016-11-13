@@ -11,6 +11,8 @@ package main
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/facebookincubator/dhcplb/lib"
 	"github.com/golang/glog"
@@ -70,10 +72,25 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 		}
 	}
 
+	// Order samples by key, store them into logline slice
+	keys := make([]string, len(sample))
+	i := 0
+	for key, _ := range sample {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	logline := make([]string, len(sample))
+	i = 0
+	for k := range keys {
+		logline[i] = fmt.Sprintf("%s: %+v", keys[k], sample[keys[k]])
+		i++
+	}
+
 	if msg.Success {
-		glog.Infof("%+v", sample)
+		glog.Infof("%s", strings.Join(logline, ", "))
 	} else {
-		glog.Errorf("%+v", sample)
+		glog.Errorf("%s", strings.Join(logline, ", "))
 	}
 	return nil
 }
