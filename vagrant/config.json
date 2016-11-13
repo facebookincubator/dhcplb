@@ -1,0 +1,30 @@
+{
+  "v4": {
+    "version": 4,
+    "listen_addr": "0.0.0.0",
+    "port": 67,
+    "packet_buf_size": 1024,
+    "update_server_interval": 30,
+    "free_conn_timeout": 30,
+    "algorithm": "xid",
+    "host_sourcer": "file:hosts-v4.cfg",
+    "rc_ratio": 0,
+    "throttle_cache_size": 1024,
+    "throttle_cache_rate": 128,
+    "throttle_rate": 5000
+  },
+  "v6": {
+    "version": 6,
+    "listen_addr": "::",
+    "port": 547,
+    "packet_buf_size": 1024,
+    "update_server_interval": 30,
+    "free_conn_timeout": 30,
+    "algorithm": "xid",
+    "host_sourcer": "file:hosts-v6.txt",
+    "rc_ratio": 0,
+    "throttle_cache_size": 1024,
+    "throttle_cache_rate": 128,
+    "throttle_rate": 256
+  }
+}
