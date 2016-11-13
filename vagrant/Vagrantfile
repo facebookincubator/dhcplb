@@ -6,6 +6,15 @@
 #
 # to remove the VirtualBox internal DHCP server... as it's going to interfeer
 # with the your environment.
+#
+#
+# TODO:
+# - chef solo setup
+#
+# - setup dhcpd.conf with static reservations using VMs mac addresses
+# (http://stackoverflow.com/questions/23396679/vagrant-setting-a-vms-mac-address-in-a-private-network-hostonly)
+# 
+# - configurable amount of dhcpserver VMs
 
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/trusty64"
