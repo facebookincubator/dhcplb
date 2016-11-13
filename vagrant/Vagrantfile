@@ -1,0 +1,66 @@
+# This is a WIP.
+#
+# If you use OSX and Virtual Box You need to run:
+#
+# $ VBoxManage dhcpserver remove --netname HostInterfaceNetworking-vboxnet0
+#
+# to remove the VirtualBox internal DHCP server... as it's going to interfeer
+# with the your environment.
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/trusty64"
+
+  config.vm.define "dhcpserver" do |dhcpserver|
+    dhcpserver.vm.hostname = "dhcpserver"
+    dhcpserver.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+      apt-get install isc-dhcp-server -y --force-yes
+    SHELL
+    # network where lb and dhcpserver sit
+    dhcpserver.vm.network :private_network, ip: "192.168.50.101"
+    # network where the client and the relayer are
+    dhcpserver.vm.network :private_network, ip: "192.168.51.101"
+  end
+
+  config.vm.define "dhcprelay" do |dhcprelay|
+    dhcprelay.vm.hostname = "dhcprelay"
+    dhcprelay.vm.provision "shell", privileged: false, inline: <<-SHELL
+      apt-get update
+      apt-get install isc-dhcp-relay -y --force-yes
+    SHELL
+    # network where lb and dhcpserver sit
+    dhcprelay.vm.network :private_network, ip: "192.168.50.102"
+    # network where the client and the relayer are
+    dhcprelay.vm.network :private_network, ip: "192.168.51.102"
+  end
+
+  config.vm.define "dhcpclient" do |dhcpclient|
+    dhcpclient.vm.hostname = "dhcpclient"
+    dhcpclient.vm.provision "shell", inline: <<-SHELL
+      apt-get update
+    SHELL
+    # network where the client and the relayer are
+    dhcpclient.vm.network :private_network, ip: "192.168.51.103"
+  end
+
+  config.vm.define "dhcplb" do |dhcplb|
+    dhcplb.vm.hostname = "dhcplb"
+    dhcplb.vm.provision "shell", privileged: false, inline: <<-SHELL
+      sudo add-apt-repository ppa:gophers/go
+      sudo add-apt-repository ppa:xdeccardx/isc-kea
+      sudo apt-get update
+      sudo apt-get install git golang-1.6 kea-admin -y --force-yes
+      export GOROOT=/usr/lib/go-1.6/
+      export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+      go get github.com/facebookincubator/dhcplb
+      echo 192.168.50.101 > /home/vagrant/hosts-v4.cfg
+    SHELL
+    # network where lb and dhcpserver sit
+    dhcplb.vm.network :private_network, ip: "192.168.50.104"
+    # network where the client and the relayer are
+    dhcplb.vm.network :private_network, ip: "192.168.51.104"
+  end
+end
+
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
