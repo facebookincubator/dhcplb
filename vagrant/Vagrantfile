@@ -13,7 +13,7 @@
 #
 # - setup dhcpd.conf with static reservations using VMs mac addresses
 # (http://stackoverflow.com/questions/23396679/vagrant-setting-a-vms-mac-address-in-a-private-network-hostonly)
-# 
+#
 # - configurable amount of dhcpserver VMs
 
 Vagrant.configure("2") do |config|
@@ -46,7 +46,9 @@ Vagrant.configure("2") do |config|
   config.vm.define "dhcpclient" do |dhcpclient|
     dhcpclient.vm.hostname = "dhcpclient"
     dhcpclient.vm.provision "shell", inline: <<-SHELL
+      add-apt-repository ppa:xdeccardx/isc-kea
       apt-get update
+      apt-get install kea-admin -y --force-yes
     SHELL
     # network where the client and the relayer are
     dhcpclient.vm.network :private_network, ip: "192.168.51.103"
@@ -54,20 +56,28 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "dhcplb" do |dhcplb|
     dhcplb.vm.hostname = "dhcplb"
+    dhcplb.vm.provision "shell", privileged: true, inline: <<-SHELL
+      add-apt-repository ppa:gophers/go
+      apt-get update
+      apt-get install git golang-1.6 -y --force-yes
+
+      echo 'export GOROOT=/usr/lib/go-1.6' > /etc/profile.d/go.sh
+      echo 'export GOPATH=/home/vagrant/go' >> /etc/profile.d/go.sh
+      echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin' >> /etc/profile.d/go.sh
+
+      chown -R vagrant:vagrant /home/vagrant/go/
+    SHELL
     dhcplb.vm.provision "shell", privileged: false, inline: <<-SHELL
-      sudo add-apt-repository ppa:gophers/go
-      sudo add-apt-repository ppa:xdeccardx/isc-kea
-      sudo apt-get update
-      sudo apt-get install git golang-1.6 kea-admin -y --force-yes
-      export GOROOT=/usr/lib/go-1.6/
-      export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-      go get github.com/facebookincubator/dhcplb
-      echo 192.168.50.101 > /home/vagrant/hosts-v4.cfg
+      source /etc/profile.d/go.sh
+      go get -v github.com/facebookincubator/dhcplb
     SHELL
     # network where lb and dhcpserver sit
     dhcplb.vm.network :private_network, ip: "192.168.50.104"
     # network where the client and the relayer are
     dhcplb.vm.network :private_network, ip: "192.168.51.104"
+    dhcplb.vm.synced_folder "../",
+      "/home/vagrant/go/src/github.com/facebookincubator/dhcplb/",
+      owner: "vagrant", group: "vagrant"
   end
 end
 
