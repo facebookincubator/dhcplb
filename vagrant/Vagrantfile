@@ -35,7 +35,7 @@ nodes = [
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.berkshelf.enabled = true
-  config.berkshelf.berksfile_path = "chef/Berksfile"
+  config.berkshelf.berksfile_path = "chef/cookbooks/Berksfile"
 
   nodes.each do |node|
     name = node["name"]
