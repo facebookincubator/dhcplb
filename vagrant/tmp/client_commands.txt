@@ -1,0 +1,2 @@
+perfdhcp -R 1 -4 -r 1200 -p 30 -t 1 -i 192.168.51.104
+dhclient -d -1 -v -pf /run/dhclient.eth1.pid -lf /var/lib/dhcp/dhclient.eth1.leases eth1

@@ -1,0 +1,127 @@
+# If you use OSX and Virtual Box You need to run:
+#
+# $ VBoxManage dhcpserver remove --netname HostInterfaceNetworking-vboxnet0
+#
+# to remove the VirtualBox internal DHCP server... as it's going to interfeer
+# with the your environment.
+#
+#
+# https://www.vagrantup.com/docs/provisioning/chef_solo.html
+
+VAGRANTFILE_API_VERSION = "2"
+
+# 192.168.50.0/24 => network where lb, relay and dhcp server sit.
+# 192.168.51.0/24 => only the client and the relay sits on this network.
+
+nodes = [
+
+  {'name' => 'dhcpserver',
+   'ips' => ["192.168.50.101", "192.168.51.101"],
+   'roles' => ['role[dhcpserver]']},
+
+  {'name' => 'dhcprelay',
+   'ips' => ["192.168.50.102", "192.168.51.102"],
+   'roles' => ['role[dhcprelay]']},
+
+  {'name' => 'dhcpclient',
+   'ips' => ["192.168.51.103"],
+   'roles' => ['role[dhcpclient]']},
+
+  {'name' => 'dhcplb',
+   'ips' => ["192.168.50.104"],
+   'roles' => ['role[dhcplb]']},
+]
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "ubuntu/trusty64"
+  config.berkshelf.enabled = true
+  config.berkshelf.berksfile_path = "chef/Berksfile"
+
+  nodes.each do |node|
+    name = node["name"]
+    config.vm.define name do |vm|
+      vm.vm.hostname = name
+      ips = node["ips"]
+      ips.each do |ip|
+        vm.vm.network :private_network, ip: ip
+      end
+      vm.vm.provision :chef_solo do |chef|
+        chef.cookbooks_path = ["chef/cookbooks"]
+        chef.data_bags_path = "chef/data_bags"
+        chef.roles_path = "chef/roles"
+        chef.add_role("base")
+        node['roles'].each do |role|
+          chef.add_role(role)
+        end
+      end
+    end
+  end
+end
+
+
+  #  dhcpserver.vm.hostname = "dhcpserver"
+  #  dhcpserver.vm.provision "shell", inline: <<-SHELL
+  #    export DEBIAN_FRONTEND=noninteractive
+  #    apt-get update
+  #    apt-get install isc-dhcp-server -y --force-yes
+  #  SHELL
+  #  # network where lb and dhcpserver sit
+  #  dhcpserver.vm.network :private_network, ip: "192.168.50.101"
+  #  # network where the client and the relayer are
+  #  dhcpserver.vm.network :private_network, ip: "192.168.51.101"
+  #end
+
+  # config.vm.define "dhcprelay" do |dhcprelay|
+  #   dhcprelay.vm.hostname = "dhcprelay"
+  #   dhcprelay.vm.provision "shell", privileged: true, inline: <<-SHELL
+  #     export DEBIAN_FRONTEND=noninteractive
+  #     apt-get update
+  #     apt-get install isc-dhcp-relay -y --force-yes
+  #   SHELL
+  #   # network where lb and dhcpserver sit
+  #   dhcprelay.vm.network :private_network, ip: "192.168.50.102"
+  #   # network where the client and the relayer are
+  #   dhcprelay.vm.network :private_network, ip: "192.168.51.102"
+  # end
+
+  # config.vm.define "dhcpclient" do |dhcpclient|
+  #   dhcpclient.vm.hostname = "dhcpclient"
+  #   dhcpclient.vm.provision "shell", inline: <<-SHELL
+  #     export DEBIAN_FRONTEND=noninteractive
+  #     add-apt-repository ppa:xdeccardx/isc-kea
+  #     apt-get update
+  #     apt-get install kea-admin -y --force-yes
+  #   SHELL
+  #   # network where the client and the relayer are
+  #   dhcpclient.vm.network :private_network, ip: "192.168.51.103"
+  # end
+
+  # config.vm.define "dhcplb" do |dhcplb|
+  #   dhcplb.vm.hostname = "dhcplb"
+  #   dhcplb.vm.provision "shell", privileged: true, inline: <<-SHELL
+  #     export DEBIAN_FRONTEND=noninteractive
+  #     add-apt-repository ppa:gophers/go
+  #     apt-get update
+  #     apt-get install git golang-1.6 -y --force-yes
+
+  #     echo 'export GOROOT=/usr/lib/go-1.6' > /etc/profile.d/go.sh
+  #     echo 'export GOPATH=/home/vagrant/go' >> /etc/profile.d/go.sh
+  #     echo 'export PATH=$PATH:$GOROOT/bin:$GOPATH/bin' >> /etc/profile.d/go.sh
+
+  #     chown -R vagrant:vagrant /home/vagrant/go/
+  #   SHELL
+  #   dhcplb.vm.provision "shell", privileged: false, inline: <<-SHELL
+  #     source /etc/profile.d/go.sh
+  #     go get -v github.com/facebookincubator/dhcplb
+  #   SHELL
+  #   # network where lb and dhcpserver sit
+  #   dhcplb.vm.network :private_network, ip: "192.168.50.104"
+  #   # network where the client and the relayer are
+  #   dhcplb.vm.network :private_network, ip: "192.168.51.104"
+  #   dhcplb.vm.synced_folder "../",
+  #     "/home/vagrant/go/src/github.com/facebookincubator/dhcplb/",
+  #     owner: "vagrant", group: "vagrant"
+  # end
+
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
