@@ -10,28 +10,38 @@
 
 VAGRANTFILE_API_VERSION = "2"
 
-# Assumes that the Vagrantfile is in the root of our
-# Chef repository.
-root_dir = File.dirname(File.expand_path(__FILE__))
+# 192.168.50.0/24 => network where lb, relay and dhcp server sit.
+# 192.168.51.0/24 => only the client and the relay sits on this network.
 
-# Assumes that the node definitions are in the nodes
-# subfolder
-nodes = Dir[File.join(root_dir,'nodes','*.json')]
+nodes = [
+
+  {'name' => 'dhcpserver',
+   'ips' => ["192.168.50.101", "192.168.51.101"],
+   'roles' => ['role[dhcpserver]']},
+
+  {'name' => 'dhcprelay',
+   'ips' => ["192.168.50.102", "192.168.51.102"],
+   'roles' => ['role[dhcprelay]']},
+
+  {'name' => 'dhcpclient',
+   'ips' => ["192.168.51.103"],
+   'roles' => ['role[dhcpclient]']},
+
+  {'name' => 'dhcplb',
+   'ips' => ["192.168.50.104"],
+   'roles' => ['role[dhcplb]']},
+]
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.berkshelf.enabled = true
   config.berkshelf.berksfile_path = "chef/Berksfile"
 
-  nodes.each do |file|
-    node_json = JSON.parse(File.read(file))
-    if(!node_json["vagrant"])
-      continue
-    end
-    name = node_json["vagrant"]["name"]
+  nodes.each do |node|
+    name = node["name"]
     config.vm.define name do |vm|
       vm.vm.hostname = name
-      ips = node_json["vagrant"]["ips"]
+      ips = node["ips"]
       ips.each do |ip|
         vm.vm.network :private_network, ip: ip
       end
@@ -40,7 +50,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         chef.data_bags_path = "chef/data_bags"
         chef.roles_path = "chef/roles"
         chef.add_role("base")
-        chef.add_role("dhcpserver")
+        node['roles'].each do |role|
+          chef.add_role(role)
+        end
       end
     end
   end
