@@ -1,0 +1,7 @@
+DEPENDENCIES
+  apt
+
+GRAPH
+  apt (5.0.0)
+    compat_resource (>= 12.14.7)
+  compat_resource (12.16.2)
