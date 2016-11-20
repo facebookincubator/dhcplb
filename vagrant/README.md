@@ -47,43 +47,30 @@ This will bring up the following VMs:
 
 You can ssh into VMs using `vagrant ssh ${vm_name}`.
 
-### `dhcpserver` VM
-
-Main config is in `/etc/dhcp/dhcpd.conf`. Subnets are configured, like this:
-
-```
-subnet 192.168.50.0 netmask 255.255.255.0 {} 
-subnet 192.168.51.0 netmask 255.255.255.0 {range 192.168.51.220 192.168.51.230;}
-```
-
-### `dhcplb` VM
-
-A VM that runs `dhcplb` configured to redirect traffic to the VM above.
-
-TODO: describe config.
-
-### `dhcprelay` VM
-
-A VM that runs `dhcrelay` configured to relay traffic to the VM above. The
-config is in `/etc/default/isc-dhcp-relay`.
-
-### `dhcpclient` VM
-
-A VM that contains dhclient and [ISC KEA's
-perfdhcp](https://kea.isc.org/wiki/DhcpBenchmarking) utility.
 
 ## Development cycle
 
-### Useful commands
+Just edit `dhcplb`'s code on your host machine (the machine running VirtualBox
+or whatever VM solution you are using).
 
-On `dhcpclient`:
+Then you can compile the binary using:
+
+```
+TODO
+```
+
+On the `dhcpclient` you can initiate dhcp requests using these commands:
 
 ```
 # perfdhcp -R 1 -4 -r 1200 -p 30 -t 1 -i 192.168.51.104
 # dhclient -d -1 -v -pf /run/dhclient.eth1.pid -lf /var/lib/dhcp/dhclient.eth1.leases eth1
 ```
+[ISC KEA's
+perfdhcp](https://kea.isc.org/wiki/DhcpBenchmarking) utility comes handy so it's
+installed for your convenience.
 
-On `dhcprelay`:
+Should you need to change something in the `dhcprelay` here are some useful
+commands:
 
 ```
 # initctl list
@@ -91,10 +78,19 @@ On `dhcprelay`:
 # /usr/sbin/dhcrelay -d -4 -i eth1 -i eth2 192.168.50.104
 ```
 
-On `dhcpserver`:
+The relay config is in `/etc/default/isc-dhcp-relay`.
+
+In general you don't need to touch the `dhcpserver` but you need to restart it
+you can use:
 
 ```
 # /etc/init.d/isc-dhcp-server restart
 ```
 
-On `dhcplb`:
+The main config is in `/etc/dhcp/dhcpd.conf`.
+Subnets are configured like this should you need to change them
+
+```
+subnet 192.168.50.0 netmask 255.255.255.0 {} 
+subnet 192.168.51.0 netmask 255.255.255.0 {range 192.168.51.220 192.168.51.230;}
+```
