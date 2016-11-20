@@ -35,17 +35,21 @@ $ vagrant up
 
 This will bring up the following VMs:
 
-* `dhcpserver`: a VM running ISC `dhcpd` (both v4 and v6);
-* `dhcprelay`: a VM running ISC `dhcrelay`;
-* `dhcpclient`: a VM you can use to run `dhclient`, or `perfdhcp`;
-* `dhcplb`: a VM running the `dhcplb` itself;
-
+* `dhcpserver`: a VM running ISC `dhcpd` (both v4 and v6) configured with a
+  subnet in the private network space.
+* `dhcplb`: a VM running the `dhcplb` itself, configured to foward traffic to
+  the above;
+* `dhcprelay`: a VM running ISC `dhcrelay`, it intercepts broadcast/multicast
+  traffic from the client below and relays traffic to the above;
+* `dhcpclient`: a VM you can use to run `dhclient`, or `perfdhcp` manually to
+  test things. It's DISCOVER/SOLICIT messages will be picked up by the
+  `dhcprelay` instance
 
 You can ssh into VMs using `vagrant ssh ${vm_name}`.
 
 ### `dhcpserver` VM
 
-A VM that runs ISC `dhcpd` configured with a subnet. Something like:
+Main config is in `/etc/dhcp/dhcpd.conf`. Subnets are configured, like this:
 
 ```
 subnet 192.168.50.0 netmask 255.255.255.0 {} 
@@ -56,9 +60,12 @@ subnet 192.168.51.0 netmask 255.255.255.0 {range 192.168.51.220 192.168.51.230;}
 
 A VM that runs `dhcplb` configured to redirect traffic to the VM above.
 
+TODO: describe config.
+
 ### `dhcprelay` VM
 
-A VM that runs `dhcrelay` configured to relay traffic to the VM above.
+A VM that runs `dhcrelay` configured to relay traffic to the VM above. The
+config is in `/etc/default/isc-dhcp-relay`.
 
 ### `dhcpclient` VM
 
