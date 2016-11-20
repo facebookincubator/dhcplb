@@ -8,7 +8,7 @@ This instructions are for DHCPv4 only, DHCPv6 will follow soon.
 
 ## Install dependencies
 
-First, install `chef-dk` from https://downloads.chef.io/chef-dk/ 
+First, install `chef-dk` from https://downloads.chef.io/chef-dk/ .
 On OSX you can use `brew`:
 
 ```
@@ -36,7 +36,8 @@ $ vagrant up
 This will bring up the following VMs:
 
 * `dhcpserver`: a VM running ISC `dhcpd` (both v4 and v6) configured with a
-  subnet in the private network space.
+  subnet in the private network space. You can start as many as you want by
+  changing the variable on top of the `Vagrantfile`.
 * `dhcplb`: a VM running the `dhcplb` itself, configured to foward traffic to
   the above;
 * `dhcprelay`: a VM running ISC `dhcrelay`, it intercepts broadcast/multicast
@@ -88,7 +89,7 @@ you can use:
 ```
 
 The main config is in `/etc/dhcp/dhcpd.conf`.
-Subnets are configured like this should you need to change them
+Subnets are configured like this should you need to change them:
 
 ```
 subnet 192.168.50.0 netmask 255.255.255.0 {} 
