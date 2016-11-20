@@ -60,18 +60,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 end
 
-  # config.vm.define "dhcpclient" do |dhcpclient|
-  #   dhcpclient.vm.hostname = "dhcpclient"
-  #   dhcpclient.vm.provision "shell", inline: <<-SHELL
-  #     export DEBIAN_FRONTEND=noninteractive
-  #     add-apt-repository ppa:xdeccardx/isc-kea
-  #     apt-get update
-  #     apt-get install kea-admin -y --force-yes
-  #   SHELL
-  #   # network where the client and the relayer are
-  #   dhcpclient.vm.network :private_network, ip: "192.168.51.103"
-  # end
-
   # config.vm.define "dhcplb" do |dhcplb|
   #   dhcplb.vm.hostname = "dhcplb"
   #   dhcplb.vm.provision "shell", privileged: true, inline: <<-SHELL

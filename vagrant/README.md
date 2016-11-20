@@ -1,12 +1,12 @@
 # How to setup your test environment with Vagrant
 
-The instruction below will help you bringing up a VM lab running in a private
-network.
-
+The instruction below will help you bringing up a virtual lab where with VMs
+sharing their own private network.
 This assumes you are somewhat familiar with `vagrant`.
+This has been tested under OSX but it should work find on Linux too.
+This instructions are for DHCPv4 only, DHCPv6 will follow soon.
 
-Note: this is manual work for now, but we are working on `chef-solo` cookbooks.
-Note: this instructions are for DHCPv4 only, DHCPv6 will follow soon.
+## Install dependencies
 
 First, install `chef-dk` from https://downloads.chef.io/chef-dk/ 
 On OSX you can use `brew`:
@@ -15,7 +15,7 @@ On OSX you can use `brew`:
 $ brew cask install Caskroom/cask/chefdk
 ```
 
-Install `vagran-berkshelf` plugin:
+Install `vagrant-berkshelf` plugin:
 
 ```
 $ vagrant plugin install vagrant-berkshelf
@@ -24,7 +24,9 @@ $ berk install
 $ berks vendor chef/cookbooks
 ```
 
-Then start all the vms:
+## Start VMs
+
+To start all the vms:
 
 ```
 $ cd ${PROJECT_ROOT}/vagrant/
@@ -38,61 +40,54 @@ This will bring up the following VMs:
 * `dhcpclient`: a VM you can use to run `dhclient`, or `perfdhcp`;
 * `dhcplb`: a VM running the `dhcplb` itself;
 
-## Configure the VMs
 
-### dhcpserver
+You can ssh into VMs using `vagrant ssh ${vm_name}`.
 
-Append the subnet to `/etc/dhcp/dhcpd.conf`:
+### `dhcpserver` VM
 
-```
-$ vagrant ssh dhcpserver
-vagrant@dhcpserver:~$ sudo su -
-root@dhcpserver:~# echo subnet 192.168.50.0 netmask 255.255.255.0 {} >> /etc/dhcp/dhcpd.conf
-root@dhcpserver:~# echo subnet 192.168.51.0 netmask 255.255.255.0 {range 192.168.51.220 192.168.51.230;} >> /etc/dhcp/dhcpd.conf
-```
-
-Make sure server is listening on the correct interface:
+A VM that runs ISC `dhcpd` configured with a subnet. Something like:
 
 ```
-root@dhcpserver:~# vi /etc/default/isc-dhcp-server
-INTERFACES="eth1"
+subnet 192.168.50.0 netmask 255.255.255.0 {} 
+subnet 192.168.51.0 netmask 255.255.255.0 {range 192.168.51.220 192.168.51.230;}
 ```
 
-Restart server:
+### `dhcplb` VM
+
+A VM that runs `dhcplb` configured to redirect traffic to the VM above.
+
+### `dhcprelay` VM
+
+A VM that runs `dhcrelay` configured to relay traffic to the VM above.
+
+### `dhcpclient` VM
+
+A VM that contains dhclient and [ISC KEA's
+perfdhcp](https://kea.isc.org/wiki/DhcpBenchmarking) utility.
+
+## Development cycle
+
+### Useful commands
+
+On `dhcpclient`:
 
 ```
-root@dhcpserver:~# /etc/init.d/isc-dhcp-server restart
+# perfdhcp -R 1 -4 -r 1200 -p 30 -t 1 -i 192.168.51.104
+# dhclient -d -1 -v -pf /run/dhclient.eth1.pid -lf /var/lib/dhcp/dhclient.eth1.leases eth1
 ```
 
-Logs are in `/var/log/syslog`
-
-### dhcrelay
-
-Make sure it's listening to both intefaces and points to the IP of the `dhcplb`
-VM:
+On `dhcprelay`:
 
 ```
-$ vagrant ssh dhcprelay
-vagrant@dhcprelay:~$ sudo su -
-root@dhcprelay:~# vi /etc/default/isc-dhcp-relay
-# IP of the dhcplb VM
-SERVERS="192.168.50.104"
-INTERFACES="eth1 eth2"
+# initctl list
+# initctl (stop|start|restart) isc-dhcp-relay
+# /usr/sbin/dhcrelay -d -4 -i eth1 -i eth2 192.168.50.104
 ```
 
-Start the daemon:
+On `dhcpserver`:
 
 ```
-root@dhcprelay:~# initctl start isc-dhcp-relay
-isc-dhcp-relay start/running, process 3071
+# /etc/init.d/isc-dhcp-server restart
 ```
 
-Logs in `/var/log/syslog`.
-
-### dhcplb
-
-```
-```
-
-### dhclient
-
+On `dhcplb`:
