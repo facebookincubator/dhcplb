@@ -13,32 +13,33 @@ VAGRANTFILE_API_VERSION = "2"
 # 192.168.50.0/24 => network where lb, relay and dhcp server sit.
 # 192.168.51.0/24 => only the client and the relay sits on this network.
 
-nodes = [
+nodes = {
+  'dhcpserver' =>
+    {'ips' => ["192.168.50.101", "192.168.51.101"],
+     'roles' => ['role[dhcpserver]']},
 
-  {'name' => 'dhcpserver',
-   'ips' => ["192.168.50.101", "192.168.51.101"],
-   'roles' => ['role[dhcpserver]']},
+  'dhcprelay' =>
+    {'ips' => ["192.168.50.102", "192.168.51.102"],
+     'roles' => ['role[dhcprelay]']},
 
-  {'name' => 'dhcprelay',
-   'ips' => ["192.168.50.102", "192.168.51.102"],
-   'roles' => ['role[dhcprelay]']},
+  'dhcpclient' =>
+    {'ips' => ["192.168.51.103"],
+     'roles' => ['role[dhcpclient]']},
 
-  {'name' => 'dhcpclient',
-   'ips' => ["192.168.51.103"],
-   'roles' => ['role[dhcpclient]']},
+  'dhcplb' =>
+    {'ips' => ["192.168.50.104"],
+     'roles' => ['role[dhcplb]']},
+}
 
-  {'name' => 'dhcplb',
-   'ips' => ["192.168.50.104"],
-   'roles' => ['role[dhcplb]']},
-]
+# point dhcprelay to the dhcplb IP
+nodes['dhcprelay']['target_dhcp_server'] = '192.168.50.104'
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
   config.berkshelf.enabled = true
   config.berkshelf.berksfile_path = "chef/cookbooks/Berksfile"
 
-  nodes.each do |node|
-    name = node["name"]
+  nodes.each do |name, node|
     config.vm.define name do |vm|
       vm.vm.hostname = name
       ips = node["ips"]
@@ -50,6 +51,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         chef.data_bags_path = "chef/data_bags"
         chef.roles_path = "chef/roles"
         chef.add_role("base")
+        chef.json = nodes
         node['roles'].each do |role|
           chef.add_role(role)
         end
@@ -57,32 +59,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
   end
 end
-
-
-  #  dhcpserver.vm.hostname = "dhcpserver"
-  #  dhcpserver.vm.provision "shell", inline: <<-SHELL
-  #    export DEBIAN_FRONTEND=noninteractive
-  #    apt-get update
-  #    apt-get install isc-dhcp-server -y --force-yes
-  #  SHELL
-  #  # network where lb and dhcpserver sit
-  #  dhcpserver.vm.network :private_network, ip: "192.168.50.101"
-  #  # network where the client and the relayer are
-  #  dhcpserver.vm.network :private_network, ip: "192.168.51.101"
-  #end
-
-  # config.vm.define "dhcprelay" do |dhcprelay|
-  #   dhcprelay.vm.hostname = "dhcprelay"
-  #   dhcprelay.vm.provision "shell", privileged: true, inline: <<-SHELL
-  #     export DEBIAN_FRONTEND=noninteractive
-  #     apt-get update
-  #     apt-get install isc-dhcp-relay -y --force-yes
-  #   SHELL
-  #   # network where lb and dhcpserver sit
-  #   dhcprelay.vm.network :private_network, ip: "192.168.50.102"
-  #   # network where the client and the relayer are
-  #   dhcprelay.vm.network :private_network, ip: "192.168.51.102"
-  # end
 
   # config.vm.define "dhcpclient" do |dhcpclient|
   #   dhcpclient.vm.hostname = "dhcpclient"
