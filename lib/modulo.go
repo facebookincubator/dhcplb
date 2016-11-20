@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"hash/fnv"
 	"sync"
+	"sync/atomic"
 )
 
 type modulo struct {
@@ -23,27 +24,30 @@ type modulo struct {
 	rcRatio uint32
 }
 
+func (m *modulo) getHash(token []byte) uint32 {
+	hasher := fnv.New32a()
+	hasher.Write(token)
+	hash := hasher.Sum32()
+	return hash
+}
+
 func (m *modulo) setRCRatio(ratio uint32) {
-	m.rcRatio = ratio
+	atomic.StoreUint32(&m.rcRatio, ratio)
 }
 
 func (m *modulo) selectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
+	hash := m.getHash(message.ClientID)
 	if len(list) == 0 {
 		return nil, errors.New("Server list is empty")
 	}
-	hasher := fnv.New32a()
-	hasher.Write(message.ClientID)
-	hash := hasher.Sum32()
 	return list[hash%uint32(len(list))], nil
 }
 
 func (m *modulo) selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error) {
-	hasher := fnv.New32a()
-	hasher.Write(message.ClientID)
-	hash := hasher.Sum32()
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	hash := m.getHash(message.ClientID)
 
 	// convert to a number 0-100 and then see if it should be RC
 	if hash%100 < m.rcRatio {
@@ -56,6 +60,7 @@ func (m *modulo) selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, 
 func (m *modulo) updateServerList(name string, list []*DHCPServer, ptr *[]*DHCPServer) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
+
 	*ptr = list
 	glog.Infof("List of available %s servers:", name)
 	for _, server := range *ptr {
@@ -69,5 +74,5 @@ func (m *modulo) updateStableServerList(list []*DHCPServer) error {
 }
 
 func (m *modulo) updateRCServerList(list []*DHCPServer) error {
-	return m.updateServerList("RC", list, &m.rc)
+	return m.updateServerList("rc", list, &m.rc)
 }

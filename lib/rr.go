@@ -14,6 +14,7 @@ import (
 	"github.com/golang/glog"
 	"hash/fnv"
 	"sync"
+	"sync/atomic"
 )
 
 type roundRobin struct {
@@ -26,9 +27,17 @@ type roundRobin struct {
 	iterList   int // iterator used by SelectServerFromList, can be used in stable/rc or passing list manually
 }
 
-func (rr *roundRobin) setRCRatio(ratio uint32) {
-	rr.rcRatio = ratio
+func (rr *roundRobin) getHash(token []byte) uint32 {
+	hasher := fnv.New32a()
+	hasher.Write(token)
+	hash := hasher.Sum32()
+	return hash
 }
+
+func (rr *roundRobin) setRCRatio(ratio uint32) {
+	atomic.StoreUint32(&rr.rcRatio, ratio)
+}
+
 func (rr *roundRobin) selectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error) {
 	rr.lock.RLock()
 	defer rr.lock.RUnlock()
@@ -45,9 +54,10 @@ func (rr *roundRobin) selectServerFromList(list []*DHCPServer, message *DHCPMess
 
 func (rr *roundRobin) selectRatioBasedDhcpServer(message *DHCPMessage) (server *DHCPServer, err error) {
 	// hash the clientid to see if it should be RC/Stable
-	hasher := fnv.New32a()
-	hasher.Write(message.ClientID)
-	hash := hasher.Sum32()
+	hash := rr.getHash(message.ClientID)
+
+	rr.lock.Lock()
+	defer rr.lock.Unlock()
 
 	if hash%100 < rr.rcRatio {
 		rr.iterList = rr.iterRC
@@ -62,6 +72,8 @@ func (rr *roundRobin) selectRatioBasedDhcpServer(message *DHCPMessage) (server *
 
 func (rr *roundRobin) updateServerList(name string, list []*DHCPServer, ptr *[]*DHCPServer) error {
 	rr.lock.Lock()
+	defer rr.lock.Unlock()
+
 	*ptr = list
 	rr.iterStable = 0
 	rr.iterRC = 0
@@ -69,7 +81,6 @@ func (rr *roundRobin) updateServerList(name string, list []*DHCPServer, ptr *[]*
 	for _, server := range *ptr {
 		glog.Infof("%s", server)
 	}
-	rr.lock.Unlock()
 	return nil
 }
 
@@ -78,5 +89,5 @@ func (rr *roundRobin) updateStableServerList(list []*DHCPServer) error {
 }
 
 func (rr *roundRobin) updateRCServerList(list []*DHCPServer) error {
-	return rr.updateServerList("RC", list, &rr.rc)
+	return rr.updateServerList("rc", list, &rr.rc)
 }
