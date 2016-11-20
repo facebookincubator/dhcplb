@@ -52,12 +52,16 @@ You can ssh into VMs using `vagrant ssh ${vm_name}`.
 ## Development cycle
 
 Just edit `dhcplb`'s code on your host machine (the machine running VirtualBox
-or whatever VM solution you are using).
+or whatever VM solution you are using). The root directory of your github
+checkout will be mounted into the `dhcplb` VM at
+`~/go/src/github.com/facebookincubator/dhcplb`.
 
-Then you can compile the binary using:
+You can compile the binary using:
 
 ```
-TODO
+$ cd ~/go/src/github.com/facebookincubator/dhcplb
+$ go build
+$ sudo mv dhcplb $GOBIN
 ```
 
 On the `dhcpclient` you can initiate dhcp requests using these commands:
@@ -66,6 +70,7 @@ On the `dhcpclient` you can initiate dhcp requests using these commands:
 # perfdhcp -R 1 -4 -r 1200 -p 30 -t 1 -i 192.168.51.104
 # dhclient -d -1 -v -pf /run/dhclient.eth1.pid -lf /var/lib/dhcp/dhclient.eth1.leases eth1
 ```
+
 [ISC KEA's
 perfdhcp](https://kea.isc.org/wiki/DhcpBenchmarking) utility comes handy so it's
 installed for your convenience.

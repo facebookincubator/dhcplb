@@ -41,7 +41,7 @@ start_ip = 104
   i += 1
   dhcpservers_ips.push(ext_ip)
 end
-nodes['dhcplb']['target_dhcp_serverrs'] = dhcpservers_ips
+nodes['dhcplb']['target_dhcp_servers'] = dhcpservers_ips
 
 # the dhcplb ip the relay needs to point to
 nodes['dhcprelay']['target_dhcplb'] = nodes['dhcplb']['ips'][0]
@@ -67,7 +67,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       vm.vm.provision :chef_solo do |chef|
         chef.cookbooks_path = ["chef/cookbooks"]
-        chef.data_bags_path = "chef/data_bags"
         chef.roles_path = "chef/roles"
         chef.add_role("base")
         chef.json = nodes
