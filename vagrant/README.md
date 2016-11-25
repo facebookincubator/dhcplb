@@ -26,6 +26,12 @@ $ berk install
 $ berks vendor chef/cookbooks
 ```
 
+You might need to disable dhcpserver for `vboxnet0` in VirtualBox:
+
+```
+$ VBoxManage dhcpserver remove --netname HostInterfaceNetworking-vboxnet0
+```
+
 ## Start VMs
 
 To start all the vms:
