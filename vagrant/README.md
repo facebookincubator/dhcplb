@@ -1,9 +1,11 @@
 # How to setup your test environment with Vagrant
 
-The instruction below will help you bringing up a virtual lab where with VMs
-sharing their own private network.
-This assumes you are somewhat familiar with `vagrant`.
+The instruction below will help you bringing up a virtual lab containing VMs
+sharing their own private network(s).
+This assumes you are somewhat familiar with
+[`vagrant`](https://www.vagrantup.com/).
 This has been tested under OSX but it should work find on Linux too.
+Please provide feedback or PRs/patches if you find problems.
 This instructions are for DHCPv4 only, DHCPv6 will follow soon.
 
 ## Install dependencies
@@ -46,8 +48,10 @@ This will bring up the following VMs:
   test things. It's DISCOVER/SOLICIT messages will be picked up by the
   `dhcprelay` instance
 
-You can ssh into VMs using `vagrant ssh ${vm_name}`.
-
+You can ssh into VMs using `vagrant ssh ${vm_name}`. Destroy them with 
+`vagrant destrory ${vm_name}`. If you find bugs in the `chef` cookbooks or you
+want to change something there you can test your `chef` changes using 
+`vagrant provision ${vm_name}` on a running VM.
 
 ## Development cycle
 
@@ -64,11 +68,53 @@ $ go build
 $ sudo mv dhcplb $GOBIN
 ```
 
+And restart it with:
+
+```
+# initctl restart dhcplb
+```
+
+Logs will be in `/var/log/upstart/dhcplb.log` (becuase the current Vagrant image
+uses a version of Ubuntu using Upstart init replacement).
+
 On the `dhcpclient` you can initiate dhcp requests using these commands:
 
 ```
 # perfdhcp -R 1 -4 -r 1200 -p 30 -t 1 -i 192.168.51.104
 # dhclient -d -1 -v -pf /run/dhclient.eth1.pid -lf /var/lib/dhcp/dhclient.eth1.leases eth1
+```
+
+You will see:
+
+```
+root@dhcpclient:~# dhclient -d -1 -v -pf /run/dhclient.eth1.pid -lf
+/var/lib/dhcp/dhclient.eth1.leases eth1
+Internet Systems Consortium DHCP Client 4.2.4
+Copyright 2004-2012 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/eth1/08:00:27:7b:79:94
+Sending on   LPF/eth1/08:00:27:7b:79:94
+Sending on   Socket/fallback
+DHCPDISCOVER on eth1 to 255.255.255.255 port 67 interval 3 (xid=0xcd1fdb2d)
+DHCPREQUEST of 192.168.51.152 on eth1 to 255.255.255.255 port 67
+(xid=0x2ddb1fcd)
+DHCPOFFER of 192.168.51.152 from 192.168.51.104
+DHCPACK of 192.168.51.152 from 192.168.51.104
+RTNETLINK answers: File exists
+bound to 192.168.51.152 -- renewal in 227 seconds.
+^C
+```
+
+And something in the dhcplb logs:
+
+```
+I1125 15:54:11.985895   12190 modulo.go:65] List of available stable servers:
+I1125 15:54:11.985943   12190 modulo.go:67] 192.168.50.104:67
+I1125 15:54:11.985953   12190 modulo.go:67] 192.168.50.105:67
+I1125 15:54:16.532833   12190 glog_logger.go:91] client_mac: 08:00:27:7b:79:94, dhcp_server: 192.168.50.104, giaddr: 192.168.51.101, latency_us: 112, server_is_rc: false, source_ip: 192.168.50.101, success: true, type: Discover, version: 4, xid: 0xcd1fdb2d
+I1125 15:54:16.534310   12190 glog_logger.go:91] client_mac: 08:00:27:7b:79:94, dhcp_server: 192.168.50.104, giaddr: 192.168.51.101, latency_us: 117, server_is_rc: false, source_ip: 192.168.50.101, success: true, type: Request, version: 4, xid: 0xcd1fdb2d
 ```
 
 [ISC KEA's
