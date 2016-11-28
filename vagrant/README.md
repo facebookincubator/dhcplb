@@ -21,9 +21,8 @@ Install `vagrant-berkshelf` plugin:
 
 ```
 $ vagrant plugin install vagrant-berkshelf
-$ cd ${PROJECT_ROOT}/vagrant/
-$ berk install
-$ berks vendor chef/cookbooks
+$ cd ${PROJECT_ROOT}/vagrant/chef/cookbooks
+$ berks install
 ```
 
 You might need to disable dhcpserver for `vboxnet0` in VirtualBox:
