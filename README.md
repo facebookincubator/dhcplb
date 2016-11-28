@@ -143,6 +143,20 @@ That will start the server in v6 mode using the default configuration.
 Should you need to integrate `dhcplb` with your infrastructure please
 see [Getting Started](docs/getting-started.md).
 
+# Virtual lab for development and testing
+
+You can bring up a virtual lab using vagrant. This will replicate our production
+environment, you can spawn VMs containing various components like:
+
+* N instances of `ISC dhcpd`
+* An instance of `dhcplb`
+* An instance of `dhcrelay`, simulating a top of rack switch.
+* a VM where you can run `dhclient` or `ISC perfdhcp`
+
+All of that is managed by `vagrant` and `chef-solo` cookbooks.
+You can use this lab to test your `dhcplb` changes.
+For more information have a look at the [vagrant directory](vagrant/README.md).
+
 # TODOs / future improvements
 
 TODOs and improvements are tracked [here](https://github.com/facebookincubator/dhcplb/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
