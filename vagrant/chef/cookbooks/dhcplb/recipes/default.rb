@@ -1,6 +1,9 @@
 node.default['go']['version'] = '1.6'
 node.default['go']['packages'] = ['github.com/facebookincubator/dhcplb']
 
+include_recipe 'golang'
+include_recipe 'golang::packages'
+
 directory '/home/vagrant/go' do
   owner 'vagrant'
   group 'vagrant'
