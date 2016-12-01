@@ -103,8 +103,8 @@ func Test_ThrottleSingleConnectionFail(t *testing.T) {
 	const connRate = 64 // per sec
 	const key = "test_key"
 
-	sleepTime := time.Duration((1000 / connRate) / 2)
-	loopCount := connRate * 2
+	sleepTime := time.Duration((1000 / connRate) / 3)
+	loopCount := connRate * 3
 
 	throttle, err := NewThrottle(cacheSize, cacheRate, connRate)
 	if err != nil {
@@ -149,8 +149,8 @@ func Test_ThrottleCacheRateFail(t *testing.T) {
 	const cacheRate = 64
 	const connRate = 1
 
-	sleepTime := time.Duration((1000 / cacheRate) / 2)
-	loopCount := cacheRate * 2
+	sleepTime := time.Duration((1000 / cacheRate) / 3)
+	loopCount := cacheRate * 3
 
 	throttle, err := NewThrottle(cacheSize, cacheRate, connRate)
 	if err != nil {
@@ -159,7 +159,7 @@ func Test_ThrottleCacheRateFail(t *testing.T) {
 	for i := 0; i < loopCount; i++ {
 		key := fmt.Sprintf("my_key_%d", i)
 
-		if ok, _ := throttle.OK(key); ok {
+		if ok, _ := throttle.OK(key); !ok {
 			return
 		}
 
