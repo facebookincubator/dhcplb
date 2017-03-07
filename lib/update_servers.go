@@ -31,21 +31,26 @@ func (s *serverImpl) updateServersContinuous() {
 		if err != nil {
 			glog.Error(err)
 		}
-		s.handleUpdatedList(s.stableServers, stable)
-		s.handleUpdatedList(s.rcServers, rc)
-
-		// update lists after making/closing sockets
-		err = config.Algorithm.updateStableServerList(stable)
-		if err != nil {
-			glog.Errorf("Error updating stable server list: %s", err)
+		if err == nil {
+			if len(stable) > 0 {
+				s.handleUpdatedList(s.stableServers, stable)
+				err = config.Algorithm.updateStableServerList(stable)
+				if err != nil {
+					glog.Errorf("Error updating stable server list: %s", err)
+				} else {
+					s.stableServers = stable
+				}
+			}
+			if len(rc) > 0 {
+				s.handleUpdatedList(s.rcServers, rc)
+				err = config.Algorithm.updateRCServerList(rc)
+				if err != nil {
+					glog.Errorf("Error updating RC server list: %s", err)
+				} else {
+					s.rcServers = rc
+				}
+			}
 		}
-		s.stableServers = stable
-
-		err = config.Algorithm.updateRCServerList(rc)
-		if err != nil {
-			glog.Errorf("Error updating RC server list: %s", err)
-		}
-		s.rcServers = rc
 
 		<-time.NewTimer(config.ServerUpdateInterval).C
 	}
