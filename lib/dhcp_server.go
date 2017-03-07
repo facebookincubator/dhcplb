@@ -91,7 +91,7 @@ func (d *DHCPServer) sendTo(packet []byte) error {
 
 func (d *DHCPServer) String() string {
 	if d.IsRC {
-		return fmt.Sprintf("%s:%d (RC)", d.Hostname, d.Port)
+		return fmt.Sprintf("Hostname: %s, IP: %s, Port: %d (RC)", d.Hostname, d.Address, d.Port)
 	}
-	return fmt.Sprintf("%s:%d", d.Hostname, d.Port)
+	return fmt.Sprintf("Hostname: %s, IP: %s, Port: %d", d.Hostname, d.Address, d.Port)
 }
