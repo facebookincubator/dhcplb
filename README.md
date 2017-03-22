@@ -21,7 +21,7 @@ Facebook's DHCP infrastructure was [presented at SRECon15 Ireland](https://www.u
 
 * All the relayer implementations available on the internet lack the load
 balancing functionality.
-* Having control of the code gives you the the ability to:
+* Having control of the code gives you the ability to:
   * perform A/B testing on new builds of our DHCP server
   * implement override mechanism
   * implement anything additional you need
