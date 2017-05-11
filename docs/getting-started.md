@@ -53,7 +53,27 @@ will be sent to the DHCP server at `173.252.90.132`, and requests from MAC
 `fe:dc:ba:09:87:65` will be sent to the tier of servers `myGroup` (a server will
 be picked according to the balancing algorithm's selection from the list of
 servers returned by the `GetServersFromTier(tier string)` function of the
-`DHCPServerSourcer` being used.)
+`DHCPServerSourcer` being used). 
+Overrides may be associated with an expiration timestamp in the form
+"YYYY/MM/DD HH:MM TIMEZONE_OFFSET", where TIMEZONE_OFFSET is
+the timezone offset with respect to UTC. `dhcplb` will convert the timestamp
+in the local timezone and ignore expired overrides.
+
+```javascript
+{
+  "v4": {
+    "12:34:56:78:90:ab": {
+        "host": "173.252.90.132",
+        "expiration": "2017/05/06 14:00 +0000"
+    },
+    "fe:dc:ba:09:87:65": {
+        "tier": "myGroup"
+    }
+  },
+  "v6": {
+  }
+}
+```
 
 
 Throttling

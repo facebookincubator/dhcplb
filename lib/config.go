@@ -50,8 +50,9 @@ type Config struct {
 // want to send packets to.
 type Override struct {
 	// note that Host override takes precedence over Tier
-	Host string `json:"host"`
-	Tier string `json:"tier"`
+	Host       string `json:"host"`
+	Tier       string `json:"tier"`
+	Expiration string `json:"expiration"`
 }
 
 // Overrides is a struct that holds v4 and v6 list of overrides.

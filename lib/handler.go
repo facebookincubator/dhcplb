@@ -98,9 +98,29 @@ func selectDestinationServer(config *Config, message *DHCPMessage) (*DHCPServer,
 
 func handleOverride(config *Config, message *DHCPMessage) (*DHCPServer, error) {
 	if override, ok := config.Overrides[FormatID(message.Mac)]; ok {
-		glog.Infof("Found override rule for %s", FormatID(message.Mac))
-		var server *DHCPServer
+		// Checking if override is expired. If so, ignore it. Expiration field should
+		// be a timestamp in the following format "2006/01/02 15:04 -0700".
+		// For example, a timestamp in UTC would look as follows: "2017/05/06 14:00 +0000".
 		var err error
+		var expiration time.Time
+		if override.Expiration != "" {
+			expiration, err = time.Parse("2006/01/02 15:04 -0700", override.Expiration)
+			if err != nil {
+				glog.Errorf("Could not parse override expiration for MAC %s: %s", FormatID(message.Mac), err.Error())
+				return nil, nil
+			}
+			if time.Now().After(expiration) {
+				glog.Errorf("Ovverride rule for MAC %s expired on %s, ignoring", FormatID(message.Mac), expiration.Local())
+				return nil, nil
+			}
+		}
+		if override.Expiration == "" {
+			glog.Infof("Found override rule for %s without expiration", FormatID(message.Mac))
+		} else {
+			glog.Infof("Found override rule for %s, it will expire on %s", FormatID(message.Mac), expiration.Local())
+		}
+
+		var server *DHCPServer
 		if len(override.Host) > 0 {
 			server, err = handleHostOverride(config, override.Host)
 		} else if len(override.Tier) > 0 {
