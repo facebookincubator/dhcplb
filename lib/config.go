@@ -70,9 +70,23 @@ func LoadConfig(path, overridesPath string, version int, provider ConfigProvider
 	if err != nil {
 		return nil, err
 	}
+
+	overridesFile := []byte{}
+	// path length of 0 means we aren't using overrides
+	if len(overridesPath) != 0 {
+		err = nil
+		if overridesFile, err = ioutil.ReadFile(overridesPath); err != nil {
+			return nil, err
+		}
+	}
+	return ParseConfig(file, overridesFile, version, provider)
+}
+
+// ParseConfig will take JSON config files, a version and a ConfigProvider,
+// and return a pointer to a Config struct
+func ParseConfig(jsonConfig, jsonOverrides []byte, version int, provider ConfigProvider) (*Config, error) {
 	var combined combinedconfigSpec
-	err = json.Unmarshal(file, &combined)
-	if err != nil {
+	if err := json.Unmarshal(jsonConfig, &combined); err != nil {
 		glog.Errorf("Failed to parse JSON: %s", err)
 		return nil, err
 	}
@@ -83,12 +97,17 @@ func LoadConfig(path, overridesPath string, version int, provider ConfigProvider
 		spec = combined.V6
 	}
 
-	overrides, err := loadOverrides(overridesPath, version)
-	if err != nil {
-		glog.Errorf("Failed to load overrides: %s", err)
-		return nil, err
+	var overrides map[string]Override
+	if len(jsonOverrides) == 0 {
+		overrides = make(map[string]Override)
+	} else {
+		overrides, err := parseOverrides(jsonOverrides, version)
+		if err != nil {
+			glog.Errorf("Failed to load overrides: %s", err)
+			return nil, err
+		}
+		glog.Infof("Loaded %d override(s)", len(overrides))
 	}
-	glog.Infof("Loaded %d override(s)", len(overrides))
 	return newConfig(&spec, overrides, provider)
 }
 
@@ -164,7 +183,7 @@ func WatchConfig(
 		}
 	}()
 
-	return newConfigBroadcaster(configChan), errChan, nil
+	return NewConfigBroadcaster(configChan), errChan, nil
 }
 
 // configSpec holds the raw json configuration.
@@ -283,17 +302,9 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 	}, nil
 }
 
-func loadOverrides(path string, version int) (map[string]Override, error) {
-	// path length of 0 means we aren't using overrides
-	if len(path) == 0 {
-		return make(map[string]Override), nil
-	}
-	file, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
+func parseOverrides(file []byte, version int) (map[string]Override, error) {
 	overrides := Overrides{}
-	err = json.Unmarshal(file, &overrides)
+	err := json.Unmarshal(file, &overrides)
 	if err != nil {
 		glog.Errorf("Failed to parse JSON: %s", err)
 		return nil, err
@@ -313,7 +324,7 @@ type ConfigBroadcaster struct {
 	receivers []chan<- *Config
 }
 
-func newConfigBroadcaster(input <-chan *Config) *ConfigBroadcaster {
+func NewConfigBroadcaster(input <-chan *Config) *ConfigBroadcaster {
 	bcast := &ConfigBroadcaster{
 		input: input,
 	}
