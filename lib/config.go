@@ -101,13 +101,14 @@ func ParseConfig(jsonConfig, jsonOverrides []byte, version int, provider ConfigP
 	if len(jsonOverrides) == 0 {
 		overrides = make(map[string]Override)
 	} else {
-		overrides, err := parseOverrides(jsonOverrides, version)
+		var err error = nil
+		overrides, err = parseOverrides(jsonOverrides, version)
 		if err != nil {
 			glog.Errorf("Failed to load overrides: %s", err)
 			return nil, err
 		}
-		glog.Infof("Loaded %d override(s)", len(overrides))
 	}
+	glog.Infof("Loaded %d override(s)", len(overrides))
 	return newConfig(&spec, overrides, provider)
 }
 
