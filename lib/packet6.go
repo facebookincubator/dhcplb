@@ -13,6 +13,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/mdlayher/eui64"
 	"net"
 )
 
@@ -75,6 +76,7 @@ const (
 	DuidLLT DuidType = iota + 1
 	DuidEN
 	DuidLL
+	DuidUUID
 )
 
 func (p Packet6) getOption(option OptionType) ([]byte, error) {
@@ -177,8 +179,32 @@ func (p Packet6) Duid() ([]byte, error) {
 	return m.getOption(ClientID)
 }
 
-// Mac returns the Mac addressed embededded in the DUID, note that thiw only
-// works with type DuidLL and DuidLLT. An error will be returned otherwise.
+func (p Packet6) DuidTypeName() (string, error) {
+	duid, err := p.Duid()
+	if err != nil {
+		return "", err
+	}
+	duidType := DuidType(binary.BigEndian.Uint16(duid[0:2]))
+	switch duidType {
+	case DuidLLT:
+		return "DUID-LLT", nil
+	case DuidLL:
+		return "DUID-LL", nil
+	case DuidEN:
+		return "DUID-EN", nil
+	case DuidUUID:
+		return "DUID-UUID", nil
+	default:
+		return "Unknown", nil
+	}
+}
+
+// Mac returns the Mac addressed embededded in the DUID, note that this only
+// works with type DuidLL and DuidLLT. If the request is not using DUID-LL[T]
+// then we look into the PeerAddr field in the RelayInfo header.
+// This contains the EUI-64 address of the client making the request, populated
+// by the dhcp relay, it is possible to extract the mac address from that IP.
+// If a mac address cannot be fonud an error will be returned.
 func (p Packet6) Mac() ([]byte, error) {
 	duid, err := p.Duid()
 	if err != nil {
@@ -186,9 +212,19 @@ func (p Packet6) Mac() ([]byte, error) {
 	}
 	duidType := DuidType(binary.BigEndian.Uint16(duid[0:2]))
 	if duidType != DuidLLT && duidType != DuidLL {
-		return nil, fmt.Errorf("Cannot extract MAC from DUID type %d", duidType)
+		// look at PeerAddress if there
+		ip, err := p.PeerAddr()
+		if err != nil {
+			return nil, err
+		} else {
+			_, mac, err := eui64.ParseIP(ip)
+			if err != nil {
+				return nil, err
+			}
+			return mac, nil
+		}
 	}
-	// last 6 bytes of the duid will be the MAC address
+	// for DUIDLL[T], the last 6 bytes of the duid will be the MAC address
 	return duid[len(duid)-6:], nil
 }
 

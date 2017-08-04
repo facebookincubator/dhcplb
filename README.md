@@ -97,6 +97,8 @@ $ go get github.com/golang/glog
 $ go get github.com/krolaw/dhcp4
 $ go get github.com/facebookgo/ensure
 $ go get github.com/hashicorp/golang-lru
+$ go get golang.org/x/time/rate
+$ go get github.com/mdlayher/eui64
 ```
 
 # Installation

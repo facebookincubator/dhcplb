@@ -69,6 +69,11 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 			sample["link-addr"] = link.String()
 			peer, _ := packet.PeerAddr()
 			sample["peer-addr"] = peer.String()
+
+			duid_type_name, err := packet.DuidTypeName()
+			if err == nil {
+				sample["duid_type"] = duid_type_name
+			}
 		}
 	}
 
