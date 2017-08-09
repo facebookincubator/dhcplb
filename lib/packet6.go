@@ -146,7 +146,8 @@ func (p Packet6) XID() (uint32, error) {
 // Hops returns the number of hops for a Packet6
 func (p Packet6) Hops() (byte, error) {
 	if t, err := p.Type(); err != nil || (t != RelayForw && t != RelayRepl) {
-		return 0, errors.New("Not a RelayForw or RelayRepl, does not have hopcount")
+		return 0, errors.New(
+			"Not a RelayForw or RelayRepl, does not have hop count")
 	}
 	return p[1], nil
 }
@@ -199,6 +200,26 @@ func (p Packet6) DuidTypeName() (string, error) {
 	}
 }
 
+// GetInnerMostPeerAddress returns the peer address in the inner most relay info
+// header, this is typically the mac address of the relay closer to the dhcp
+// client making the request.
+func (p Packet6) GetInnerMostPeerAddr() (net.IP, error) {
+	packet := Packet6(make([]byte, len(p)))
+	copy(packet, p)
+	hops, err := packet.Hops()
+	var addr net.IP
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i <= int(hops); i++ {
+		packet, addr, err = packet.Unwind()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return addr, nil
+}
+
 // Mac returns the Mac addressed embededded in the DUID, note that this only
 // works with type DuidLL and DuidLLT. If the request is not using DUID-LL[T]
 // then we look into the PeerAddr field in the RelayInfo header.
@@ -212,8 +233,9 @@ func (p Packet6) Mac() ([]byte, error) {
 	}
 	duidType := DuidType(binary.BigEndian.Uint16(duid[0:2]))
 	if duidType != DuidLLT && duidType != DuidLL {
-		// look at PeerAddress if there
-		ip, err := p.PeerAddr()
+		// look at inner most peer address, which is set by the closest relay
+		// to the dhcp client
+		ip, err := p.GetInnerMostPeerAddr()
 		if err != nil {
 			return nil, err
 		} else {
