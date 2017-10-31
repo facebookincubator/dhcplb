@@ -91,7 +91,7 @@ func selectDestinationServer(config *Config, message *DHCPMessage) (*DHCPServer,
 		return nil, err
 	}
 	if server == nil {
-		server, err = config.Algorithm.selectRatioBasedDhcpServer(message)
+		server, err = config.Algorithm.SelectRatioBasedDhcpServer(message)
 	}
 	return server, err
 }
@@ -166,7 +166,7 @@ func handleTierOverride(config *Config, tier string, message *DHCPMessage) (*DHC
 		return nil, fmt.Errorf("Sourcer returned no servers")
 	}
 	// pick server according to the configured algorithm
-	server, err := config.Algorithm.selectServerFromList(servers, message)
+	server, err := config.Algorithm.SelectServerFromList(servers, message)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to select server: %s", err)
 	}

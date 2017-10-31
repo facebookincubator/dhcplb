@@ -180,6 +180,7 @@ func (p Packet6) Duid() ([]byte, error) {
 	return m.getOption(ClientID)
 }
 
+// DuidTypeName returns a string representing the type of DUID for the packet.
 func (p Packet6) DuidTypeName() (string, error) {
 	duid, err := p.Duid()
 	if err != nil {
@@ -200,7 +201,7 @@ func (p Packet6) DuidTypeName() (string, error) {
 	}
 }
 
-// GetInnerMostPeerAddress returns the peer address in the inner most relay info
+// GetInnerMostPeerAddr returns the peer address in the inner most relay info
 // header, this is typically the mac address of the relay closer to the dhcp
 // client making the request.
 func (p Packet6) GetInnerMostPeerAddr() (net.IP, error) {
@@ -238,13 +239,12 @@ func (p Packet6) Mac() ([]byte, error) {
 		ip, err := p.GetInnerMostPeerAddr()
 		if err != nil {
 			return nil, err
-		} else {
-			_, mac, err := eui64.ParseIP(ip)
-			if err != nil {
-				return nil, err
-			}
-			return mac, nil
 		}
+		_, mac, err := eui64.ParseIP(ip)
+		if err != nil {
+			return nil, err
+		}
+		return mac, nil
 	}
 	// for DUIDLL[T], the last 6 bytes of the duid will be the MAC address
 	return duid[len(duid)-6:], nil

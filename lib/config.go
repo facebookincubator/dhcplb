@@ -22,18 +22,20 @@ import (
 )
 
 // ConfigProvider is an interface which provides methods to fetch the
-// HostSourcer and parse extra configuration.
+// HostSourcer, parse extra configuration and provide additional load balancing
+// implementations.
 type ConfigProvider interface {
 	NewHostSourcer(
 		sourcerType, args string, version int) (DHCPServerSourcer, error)
 	ParseExtras(extras json.RawMessage) (interface{}, error)
+	NewDHCPBalancingAlgorithm(version int) (DHCPBalancingAlgorithm, error)
 }
 
 // Config represents the server configuration.
 type Config struct {
 	Version              int
 	Addr                 *net.UDPAddr
-	Algorithm            dhcpBalancingAlgorithm
+	Algorithm            DHCPBalancingAlgorithm
 	ServerUpdateInterval time.Duration
 	PacketBufSize        int
 	HostSourcer          DHCPServerSourcer
@@ -101,7 +103,7 @@ func ParseConfig(jsonConfig, jsonOverrides []byte, version int, provider ConfigP
 	if len(jsonOverrides) == 0 {
 		overrides = make(map[string]Override)
 	} else {
-		var err error = nil
+		var err error
 		overrides, err = parseOverrides(jsonOverrides, version)
 		if err != nil {
 			glog.Errorf("Failed to load overrides: %s", err)
@@ -235,11 +237,22 @@ func (c *configSpec) sourcer(provider ConfigProvider) (DHCPServerSourcer, error)
 	}
 }
 
-func (c *configSpec) algorithm() (dhcpBalancingAlgorithm, error) {
-	// Available balancing algorithms
-	algorithms := map[string]dhcpBalancingAlgorithm{
-		"xid": new(modulo),
-		"rr":  new(roundRobin),
+func (c *configSpec) algorithm(provider ConfigProvider) (DHCPBalancingAlgorithm, error) {
+	// Balancing algorithms coming with the dhcplb source code
+	modulo := new(modulo)
+	rr := new(roundRobin)
+	algorithms := map[string]DHCPBalancingAlgorithm{
+		modulo.Name(): modulo,
+		rr.Name():     rr,
+	}
+	// load other non default algorithms from the ConfigProvider
+	providedAlgo, err := provider.NewDHCPBalancingAlgorithm(c.Version)
+	if err != nil {
+		glog.Fatalf("Provided load balancing implementation error: %s", err)
+	}
+	if providedAlgo != nil {
+		// TODO: check that the name is not used, if not then fatal.
+		algorithms[providedAlgo.Name()] = providedAlgo
 	}
 	lb, ok := algorithms[c.AlgorithmName]
 	if !ok {
@@ -247,11 +260,14 @@ func (c *configSpec) algorithm() (dhcpBalancingAlgorithm, error) {
 		for k := range algorithms {
 			supported = append(supported, k)
 		}
-		glog.Fatalf("Supported balancing algorithms: %v", supported)
+		glog.Fatalf(
+			"'%s' is not a supported balancing algorithm. "+
+				"Supported balancing algorithms are: %v",
+			c.AlgorithmName, supported)
 		return nil, fmt.Errorf(
 			"'%s' is not a supported balancing algorithm", c.AlgorithmName)
 	}
-	lb.setRCRatio(c.RCRatio)
+	lb.SetRCRatio(c.RCRatio)
 	return lb, nil
 }
 
@@ -270,7 +286,7 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 		Zone: "",
 	}
 
-	algo, err := spec.algorithm()
+	algo, err := spec.algorithm(provider)
 	if err != nil {
 		return nil, err
 	}
@@ -325,6 +341,7 @@ type ConfigBroadcaster struct {
 	receivers []chan<- *Config
 }
 
+// NewConfigBroadcaster returns an instance of ConfigBroadcaster
 func NewConfigBroadcaster(input <-chan *Config) *ConfigBroadcaster {
 	bcast := &ConfigBroadcaster{
 		input: input,

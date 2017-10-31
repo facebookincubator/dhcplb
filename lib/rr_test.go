@@ -15,7 +15,7 @@ import (
 
 func RRTestEmpty(t *testing.T) {
 	subject := new(roundRobin)
-	_, err := subject.selectRatioBasedDhcpServer(&DHCPMessage{
+	_, err := subject.SelectRatioBasedDhcpServer(&DHCPMessage{
 		ClientID: []byte{0},
 	})
 	if err == nil {
@@ -31,12 +31,12 @@ func RRTestBalance(t *testing.T) {
 			Port: i,
 		}
 	}
-	subject.updateStableServerList(servers)
+	subject.UpdateStableServerList(servers)
 	msg := DHCPMessage{
 		ClientID: []byte{0},
 	}
 	for i := 0; i < 4; i++ {
-		server, err := subject.selectRatioBasedDhcpServer(&msg)
+		server, err := subject.SelectRatioBasedDhcpServer(&msg)
 		if err != nil {
 			t.Fatalf("Unexpected error selecting server: %s", err)
 		}

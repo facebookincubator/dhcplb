@@ -34,7 +34,7 @@ func (s *serverImpl) updateServersContinuous() {
 		if err == nil {
 			if len(stable) > 0 {
 				s.handleUpdatedList(s.stableServers, stable)
-				err = config.Algorithm.updateStableServerList(stable)
+				err = config.Algorithm.UpdateStableServerList(stable)
 				if err != nil {
 					glog.Errorf("Error updating stable server list: %s", err)
 				} else {
@@ -43,7 +43,7 @@ func (s *serverImpl) updateServersContinuous() {
 			}
 			if len(rc) > 0 {
 				s.handleUpdatedList(s.rcServers, rc)
-				err = config.Algorithm.updateRCServerList(rc)
+				err = config.Algorithm.UpdateRCServerList(rc)
 				if err != nil {
 					glog.Errorf("Error updating RC server list: %s", err)
 				} else {

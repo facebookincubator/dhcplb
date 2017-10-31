@@ -48,8 +48,8 @@ func (s *serverImpl) ListenAndServe() error {
 func (s *serverImpl) SetConfig(config *Config) {
 	glog.Infof("Updating server config")
 	// update server list because Algorithm instance was recreated
-	config.Algorithm.updateStableServerList(s.stableServers)
-	config.Algorithm.updateRCServerList(s.rcServers)
+	config.Algorithm.UpdateStableServerList(s.stableServers)
+	config.Algorithm.UpdateRCServerList(s.rcServers)
 	atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&s.config)), unsafe.Pointer(config))
 	glog.Infof("Updated server config")
 }

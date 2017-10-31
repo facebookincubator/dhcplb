@@ -28,12 +28,18 @@ func (m *DHCPMessage) id() id {
 	return id(fmt.Sprintf("%s%d%x", m.Peer.IP, m.XID, m.ClientID))
 }
 
-type dhcpBalancingAlgorithm interface {
-	selectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error)
-	selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error)
-	updateStableServerList(list []*DHCPServer) error
-	updateRCServerList(list []*DHCPServer) error
-	setRCRatio(ratio uint32)
+// DHCPBalancingAlgorithm defines an interface for load balancing algorithms.
+// Users can implement their own and add them to config.go (in the
+// configSpec.algorithm method)
+type DHCPBalancingAlgorithm interface {
+	SelectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error)
+	SelectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error)
+	UpdateStableServerList(list []*DHCPServer) error
+	UpdateRCServerList(list []*DHCPServer) error
+	SetRCRatio(ratio uint32)
+	// An unique name for the algorithm, this string can be used in the
+	// configuration file, in the section where the algorithm is selecetd.
+	Name() string
 }
 
 // Server is the main interface implementing the DHCP server.

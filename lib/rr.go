@@ -27,6 +27,10 @@ type roundRobin struct {
 	iterList   int // iterator used by SelectServerFromList, can be used in stable/rc or passing list manually
 }
 
+func (rr *roundRobin) Name() string {
+	return "rr"
+}
+
 func (rr *roundRobin) getHash(token []byte) uint32 {
 	hasher := fnv.New32a()
 	hasher.Write(token)
@@ -34,11 +38,11 @@ func (rr *roundRobin) getHash(token []byte) uint32 {
 	return hash
 }
 
-func (rr *roundRobin) setRCRatio(ratio uint32) {
+func (rr *roundRobin) SetRCRatio(ratio uint32) {
 	atomic.StoreUint32(&rr.rcRatio, ratio)
 }
 
-func (rr *roundRobin) selectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error) {
+func (rr *roundRobin) SelectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error) {
 	rr.lock.RLock()
 	defer rr.lock.RUnlock()
 
@@ -52,7 +56,7 @@ func (rr *roundRobin) selectServerFromList(list []*DHCPServer, message *DHCPMess
 	return server, nil
 }
 
-func (rr *roundRobin) selectRatioBasedDhcpServer(message *DHCPMessage) (server *DHCPServer, err error) {
+func (rr *roundRobin) SelectRatioBasedDhcpServer(message *DHCPMessage) (server *DHCPServer, err error) {
 	// hash the clientid to see if it should be RC/Stable
 	hash := rr.getHash(message.ClientID)
 
@@ -62,15 +66,15 @@ func (rr *roundRobin) selectRatioBasedDhcpServer(message *DHCPMessage) (server *
 	if hash%100 < rr.rcRatio {
 		rr.iterList = rr.iterRC
 		rr.iterRC++
-		return rr.selectServerFromList(rr.rc, message)
+		return rr.SelectServerFromList(rr.rc, message)
 	}
 	//otherwise go stable
 	rr.iterList = rr.iterStable
 	rr.iterStable++
-	return rr.selectServerFromList(rr.stable, message)
+	return rr.SelectServerFromList(rr.stable, message)
 }
 
-func (rr *roundRobin) updateServerList(name string, list []*DHCPServer, ptr *[]*DHCPServer) error {
+func (rr *roundRobin) UpdateServerList(name string, list []*DHCPServer, ptr *[]*DHCPServer) error {
 	rr.lock.Lock()
 	defer rr.lock.Unlock()
 
@@ -84,10 +88,10 @@ func (rr *roundRobin) updateServerList(name string, list []*DHCPServer, ptr *[]*
 	return nil
 }
 
-func (rr *roundRobin) updateStableServerList(list []*DHCPServer) error {
-	return rr.updateServerList("stable", list, &rr.stable)
+func (rr *roundRobin) UpdateStableServerList(list []*DHCPServer) error {
+	return rr.UpdateServerList("stable", list, &rr.stable)
 }
 
-func (rr *roundRobin) updateRCServerList(list []*DHCPServer) error {
-	return rr.updateServerList("rc", list, &rr.rc)
+func (rr *roundRobin) UpdateRCServerList(list []*DHCPServer) error {
+	return rr.UpdateServerList("rc", list, &rr.rc)
 }

@@ -61,8 +61,7 @@ func (d *DHCPServer) disconnect() error {
 	defer d.connLock.Unlock()
 	if d.conn != nil {
 		glog.Infof("Closing connection to %s", d)
-		err := d.conn.Close()
-		if err != nil {
+		if err := d.conn.Close(); err != nil {
 			return err
 		}
 		d.conn = nil
@@ -72,21 +71,21 @@ func (d *DHCPServer) disconnect() error {
 
 func (d *DHCPServer) sendTo(packet []byte) error {
 	if d.conn == nil {
-		return fmt.Errorf("No connection open to %s", d)
+		glog.Errorf("No connection open to %s.", d)
+		if err := d.connect(); err != nil {
+			return err
+		}
 	}
-	_, err := d.conn.Write(packet)
-	if err != nil {
+	if _, err := d.conn.Write(packet); err != nil {
 		// if failed, try to re-open socket and try again once
-		err = d.connect()
-		if err != nil {
+		if err := d.connect(); err != nil {
 			return err
 		}
-		_, err := d.conn.Write(packet)
-		if err != nil {
+		if _, err := d.conn.Write(packet); err != nil {
 			return err
 		}
 	}
-	return err
+	return nil
 }
 
 func (d *DHCPServer) String() string {

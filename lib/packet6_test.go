@@ -174,9 +174,9 @@ func TestDuidUUID(t *testing.T) {
 		0x10, 0xaa, 0xeb, 0x0a, 0x5b, 0x3f, 0xe8, 0x9d,
 		0x0f, 0x56}
 	ensure.DeepEqual(t, duid, expected)
-	mac, err_mac := packet.Mac()
-	if err_mac != nil {
-		t.Fatalf("Error extracting mac from peer-address relayinfo: %s", err_mac)
+	mac, errMac := packet.Mac()
+	if errMac != nil {
+		t.Fatalf("Error extracting mac from peer-address relayinfo: %s", errMac)
 	}
 	if FormatID(mac) != "24:8a:07:56:dc:a4" {
 		t.Fatalf("Expected mac %s but got %s", "24:8a:07:56:de:b0", FormatID(mac))

@@ -43,3 +43,11 @@ func (h DefaultConfigProvider) NewHostSourcer(sourcerType, args string, version 
 func (h DefaultConfigProvider) ParseExtras(data json.RawMessage) (interface{}, error) {
 	return nil, nil
 }
+
+// NewDHCPBalancingAlgorithm returns a DHCPBalancingAlgorithm implementation.
+// This can be used if you need to create your own balancing algorithm and
+// integrate it with your infra without necesarily having to realase your code
+// to github.
+func (h DefaultConfigProvider) NewDHCPBalancingAlgorithm() (DHCPBalancingAlgorithm, error) {
+	return nil, nil
+}

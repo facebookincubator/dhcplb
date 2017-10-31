@@ -24,6 +24,10 @@ type modulo struct {
 	rcRatio uint32
 }
 
+func (m *modulo) Name() string {
+	return "xid"
+}
+
 func (m *modulo) getHash(token []byte) uint32 {
 	hasher := fnv.New32a()
 	hasher.Write(token)
@@ -31,11 +35,11 @@ func (m *modulo) getHash(token []byte) uint32 {
 	return hash
 }
 
-func (m *modulo) setRCRatio(ratio uint32) {
+func (m *modulo) SetRCRatio(ratio uint32) {
 	atomic.StoreUint32(&m.rcRatio, ratio)
 }
 
-func (m *modulo) selectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error) {
+func (m *modulo) SelectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error) {
 	hash := m.getHash(message.ClientID)
 	if len(list) == 0 {
 		return nil, errors.New("Server list is empty")
@@ -43,7 +47,7 @@ func (m *modulo) selectServerFromList(list []*DHCPServer, message *DHCPMessage) 
 	return list[hash%uint32(len(list))], nil
 }
 
-func (m *modulo) selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error) {
+func (m *modulo) SelectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -51,13 +55,13 @@ func (m *modulo) selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, 
 
 	// convert to a number 0-100 and then see if it should be RC
 	if hash%100 < m.rcRatio {
-		return m.selectServerFromList(m.rc, message)
+		return m.SelectServerFromList(m.rc, message)
 	}
 	// otherwise go to stable
-	return m.selectServerFromList(m.stable, message)
+	return m.SelectServerFromList(m.stable, message)
 }
 
-func (m *modulo) updateServerList(name string, list []*DHCPServer, ptr *[]*DHCPServer) error {
+func (m *modulo) UpdateServerList(name string, list []*DHCPServer, ptr *[]*DHCPServer) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -69,10 +73,10 @@ func (m *modulo) updateServerList(name string, list []*DHCPServer, ptr *[]*DHCPS
 	return nil
 }
 
-func (m *modulo) updateStableServerList(list []*DHCPServer) error {
-	return m.updateServerList("stable", list, &m.stable)
+func (m *modulo) UpdateStableServerList(list []*DHCPServer) error {
+	return m.UpdateServerList("stable", list, &m.stable)
 }
 
-func (m *modulo) updateRCServerList(list []*DHCPServer) error {
-	return m.updateServerList("rc", list, &m.rc)
+func (m *modulo) UpdateRCServerList(list []*DHCPServer) error {
+	return m.UpdateServerList("rc", list, &m.rc)
 }

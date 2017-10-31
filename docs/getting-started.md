@@ -53,7 +53,7 @@ will be sent to the DHCP server at `173.252.90.132`, and requests from MAC
 `fe:dc:ba:09:87:65` will be sent to the tier of servers `myGroup` (a server will
 be picked according to the balancing algorithm's selection from the list of
 servers returned by the `GetServersFromTier(tier string)` function of the
-`DHCPServerSourcer` being used). 
+`DHCPServerSourcer` being used).
 Overrides may be associated with an expiration timestamp in the form
 "YYYY/MM/DD HH:MM TIMEZONE_OFFSET", where TIMEZONE_OFFSET is
 the timezone offset with respect to UTC. `dhcplb` will convert the timestamp
@@ -115,20 +115,27 @@ At the moment this is a bit complex but we will work on ways to make it easier.
 ### Adding a new balancing algorithm.
 
 Adding a new algorithm can be done by implementing something that matches
-the `dhcpBalancingAlgorithm` interface:
+the `DHCPBalancingAlgorithm` interface:
 
 ```go
-type dhcpBalancingAlgorithm interface {
+type DHCPBalancingAlgorithm interface {
 	selectServerFromList(list []*DHCPServer, message *DHCPMessage) (*DHCPServer, error)
 	selectRatioBasedDhcpServer(message *DHCPMessage) (*DHCPServer, error)
 	updateStableServerList(list []*DHCPServer) error
 	updateRCServerList(list []*DHCPServer) error
 	setRCRatio(ratio uint32)
+  Name() string
 }
 ```
 
 Then add it to the `algorithms` map in the `configSpec.algorithm` function, in
 the `config.go` file.
+Do that if you want to share the algorithm with the community.
+
+If, however, you need to implement something that you can't share, because, for
+example, it's internal and specific to your infra, you can write something that
+implements the `ConfigProvider` interface, in particular the
+`NewDHCPBalancingAlgorithm` function.
 
 ### Adding more configuration options.
 
@@ -139,6 +146,7 @@ More configuration options can be added to the config JSON file using the
 type ConfigProvider interface {
 	NewHostSourcer(sourcerType, args string, version int) (DHCPServerSourcer, error)
 	ParseExtras(extras json.RawMessage) (interface{}, error)
+  NewDHCPBalancingAlgorithm(version int) (DHCPBalancingAlgorithm, error)
 }
 ```
 
@@ -152,6 +160,9 @@ implementation.
 
 Any struct can be returned from the `ParseExtras` function and used elsewhere in
 the code via the `Extras` member of a `Config` struct.
+
+As mentioned in the section before `NewDHCPBalancingAlgorithm` can be used
+to return your own specific load balancing implementation.
 
 ### Write your own logic to source list of DHCP servers
 
