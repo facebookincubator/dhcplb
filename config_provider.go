@@ -48,6 +48,6 @@ func (h DefaultConfigProvider) ParseExtras(data json.RawMessage) (interface{}, e
 // This can be used if you need to create your own balancing algorithm and
 // integrate it with your infra without necesarily having to realase your code
 // to github.
-func (h DefaultConfigProvider) NewDHCPBalancingAlgorithm() (dhcplb.DHCPBalancingAlgorithm, error) {
+func (h DefaultConfigProvider) NewDHCPBalancingAlgorithm(version int) (DHCPBalancingAlgorithm, error) {
 	return nil, nil
 }
