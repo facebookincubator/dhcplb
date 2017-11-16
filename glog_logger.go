@@ -46,11 +46,13 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 	if msg.Packet != nil {
 		if msg.Version == 4 {
 			packet := dhcp4.Packet(msg.Packet)
-			t := dhcp4.MessageType(
-				packet.ParseOptions()[dhcp4.OptionDHCPMessageType][0])
-			sample["type"] = t.String()
-			sample["xid"] = fmt.Sprintf("%#06x", packet.XId())
-			sample["giaddr"] = packet.GIAddr().String()
+			opts := packet.ParseOptions()
+			if len(opts) > 0 {
+				t := dhcp4.MessageType(opts[dhcp4.OptionDHCPMessageType][0])
+				sample["type"] = t.String()
+				sample["xid"] = fmt.Sprintf("%#06x", packet.XId())
+				sample["giaddr"] = packet.GIAddr().String()
+			}
 			sample["client_mac"] = packet.CHAddr().String()
 		} else if msg.Version == 6 {
 			packet := dhcplb.Packet6(msg.Packet)

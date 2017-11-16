@@ -12,6 +12,7 @@ package dhcplb
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/krolaw/dhcp4"
@@ -208,7 +209,15 @@ func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer 
 	message.Peer = peer
 	message.ClientID = packet.CHAddr()
 	message.Mac = packet.CHAddr()
-	t := dhcp4.MessageType(packet.ParseOptions()[dhcp4.OptionDHCPMessageType][0])
+	opts := packet.ParseOptions()
+	if len(opts) == 0 {
+		msg := fmt.Sprintf("Failed to parse options for packet coming from peer %s.", peer.String())
+		glog.Errorf(msg)
+		logger.LogErr(start, nil, packet, peer, ErrParse, errors.New(msg))
+		return
+	}
+
+	t := dhcp4.MessageType(opts[dhcp4.OptionDHCPMessageType][0])
 	packet.SetHops(packet.Hops() + 1)
 
 	server, err := selectDestinationServer(config, &message)
