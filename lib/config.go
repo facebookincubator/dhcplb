@@ -43,9 +43,9 @@ type Config struct {
 	RCRatio              uint32
 	Overrides            map[string]Override
 	Extras               interface{}
-	TCacheSize           int
-	TCacheRate           int
-	TRate                int
+	CacheSize           int
+	CacheRate           int
+	Rate                int
 }
 
 // Override represents the dhcp server or the group of dhcp servers (tier) we
@@ -202,9 +202,9 @@ type configSpec struct {
 	FreeConnTimeout      int             `json:"free_conn_timeout"`
 	RCRatio              uint32          `json:"rc_ratio"`
 	Extras               json.RawMessage `json:"extras"`
-	TCacheSize           int             `json:"throttle_cache_size"`
-	TCacheRate           int             `json:"throttle_cache_rate"`
-	TRate                int             `json:"throttle_rate"`
+	CacheSize           int             `json:"throttle_cache_size"`
+	CacheRate           int             `json:"throttle_cache_rate"`
+	Rate                int             `json:"throttle_rate"`
 }
 
 type combinedconfigSpec struct {
@@ -313,9 +313,9 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 		RCRatio:         spec.RCRatio,
 		Overrides:       overrides,
 		Extras:          extras,
-		TCacheSize:      spec.TCacheSize,
-		TCacheRate:      spec.TCacheRate,
-		TRate:           spec.TRate,
+		CacheSize:      spec.CacheSize,
+		CacheRate:      spec.CacheRate,
+		Rate:           spec.Rate,
 	}, nil
 }
 
