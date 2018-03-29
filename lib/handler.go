@@ -10,12 +10,10 @@
 package dhcplb
 
 import (
-	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"github.com/golang/glog"
-	"github.com/krolaw/dhcp4"
+	"github.com/insomniacslk/dhcp/dhcpv4"
 	"net"
 	"runtime/debug"
 	"sync"
@@ -203,33 +201,30 @@ func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer 
 	// runs in a separate go routine
 	start := time.Now()
 	var message DHCPMessage
-	packet := dhcp4.Packet(buffer)
-
-	message.XID = binary.BigEndian.Uint32(packet.XId())
-	message.Peer = peer
-	message.ClientID = packet.CHAddr()
-	message.Mac = packet.CHAddr()
-	opts := packet.ParseOptions()
-	if len(opts) == 0 {
-		msg := fmt.Sprintf("Failed to parse options for packet coming from peer %s.", peer.String())
-		glog.Errorf(msg)
-		logger.LogErr(start, nil, packet, peer, ErrParse, errors.New(msg))
+	packet, err := dhcpv4.FromBytes(buffer)
+	if err != nil {
+		glog.Errorf("Error encoding DHCPv4 packet: %s", err)
+		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 		return
 	}
 
-	t := dhcp4.MessageType(opts[dhcp4.OptionDHCPMessageType][0])
-	packet.SetHops(packet.Hops() + 1)
+	message.XID = packet.TransactionID()
+	message.Peer = peer
+	clientHwAddr := packet.ClientHwAddr()
+	hwAddrLen := packet.HwAddrLen()
+	message.ClientID = clientHwAddr[:hwAddrLen]
+	message.Mac = clientHwAddr[:hwAddrLen]
+
+	packet.SetHopCount(packet.HopCount() + 1)
 
 	server, err := selectDestinationServer(config, &message)
 	if err != nil {
-		glog.Errorf("Xid: 0x%x, Type: %s, Hops+1: %x, GIAddr: %s, CHAddr: %s, "+
-			"Drop due to %s", message.XID, t, packet.Hops(), packet.GIAddr(),
-			FormatID(packet.CHAddr()), err)
-		logger.LogErr(start, nil, packet, peer, ErrNoServer, err)
+		glog.Errorf("%s, Drop due to %s", packet.Summary(), err)
+		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrNoServer, err)
 		return
 	}
 
-	sendToServer(logger, start, server, packet, peer, throttle)
+	sendToServer(logger, start, server, packet.ToBytes(), peer, throttle)
 }
 
 func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr, throttle Throttle) {

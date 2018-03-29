@@ -16,7 +16,7 @@ import (
 
 	"github.com/facebookincubator/dhcplb/lib"
 	"github.com/golang/glog"
-	"github.com/krolaw/dhcp4"
+	"github.com/insomniacslk/dhcp/dhcpv4"
 )
 
 type glogLogger struct{}
@@ -45,15 +45,16 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 
 	if msg.Packet != nil {
 		if msg.Version == 4 {
-			packet := dhcp4.Packet(msg.Packet)
-			opts := packet.ParseOptions()
-			if len(opts) > 0 {
-				t := dhcp4.MessageType(opts[dhcp4.OptionDHCPMessageType][0])
-				sample["type"] = t.String()
-				sample["xid"] = fmt.Sprintf("%#06x", packet.XId())
-				sample["giaddr"] = packet.GIAddr().String()
+			packet, _ := dhcpv4.FromBytes(msg.Packet)
+			for _, opt := range packet.Options() {
+				if opt.Code == dhcpv4.OptionDHCPMessageType {
+					sample["type"] = opt.String()
+					sample["xid"] = fmt.Sprintf("%#06x", packet.TransactionID())
+					sample["giaddr"] = packet.GatewayIPAddr().String()
+					break
+				}
 			}
-			sample["client_mac"] = packet.CHAddr().String()
+			sample["client_mac"] = packet.ClientHwAddrToString()
 		} else if msg.Version == 6 {
 			packet := dhcplb.Packet6(msg.Packet)
 			pt, _ := packet.Type()
