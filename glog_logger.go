@@ -47,7 +47,7 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 		if msg.Version == 4 {
 			packet, _ := dhcpv4.FromBytes(msg.Packet)
 			for _, opt := range packet.Options() {
-				if opt.Code == dhcpv4.OptionDHCPMessageType {
+				if opt.Code() == dhcpv4.OptionDHCPMessageType {
 					sample["type"] = opt.String()
 					sample["xid"] = fmt.Sprintf("%#06x", packet.TransactionID())
 					sample["giaddr"] = packet.GatewayIPAddr().String()
