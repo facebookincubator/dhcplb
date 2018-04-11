@@ -17,6 +17,7 @@ import (
 	"github.com/facebookincubator/dhcplb/lib"
 	"github.com/golang/glog"
 	"github.com/insomniacslk/dhcp/dhcpv4"
+	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
 type glogLogger struct{}
@@ -56,26 +57,44 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 			}
 			sample["client_mac"] = packet.ClientHwAddrToString()
 		} else if msg.Version == 6 {
-			packet := dhcplb.Packet6(msg.Packet)
-			pt, _ := packet.Type()
-			sample["type"] = pt.String()
-			xid, _ := packet.XID()
-			sample["xid"] = fmt.Sprintf("%#06x", xid)
-			duid, _ := packet.Duid()
-			sample["duid"] = dhcplb.FormatID(duid)
-			mac, err := packet.Mac()
+			packet, err := dhcpv6.FromBytes(msg.Packet)
 			if err != nil {
-				glog.Errorf("error getting mac: %s", err)
+				glog.Errorf("Error encoding DHCPv6 packet: %s", err)
+				return err
 			}
-			sample["client_mac"] = dhcplb.FormatID(mac)
-			link, _ := packet.LinkAddr()
-			sample["link-addr"] = link.String()
-			peer, _ := packet.PeerAddr()
-			sample["peer-addr"] = peer.String()
-
-			duid_type_name, err := packet.DuidTypeName()
-			if err == nil {
-				sample["duid_type"] = duid_type_name
+			pt := dhcpv6.MessageTypeToString(packet.Type())
+			sample["type"] = pt
+			msg := packet
+			if msg.IsRelay() {
+				msg, err = msg.(*dhcpv6.DHCPv6Relay).GetInnerMessage()
+				if err != nil {
+					glog.Errorf("Failed to get inner packet: %s", err)
+					return err
+				}
+			}
+			xid := msg.(*dhcpv6.DHCPv6Message).TransactionID()
+			sample["xid"] = fmt.Sprintf("%#06x", xid)
+			optclientid := msg.GetOneOption(dhcpv6.OPTION_CLIENTID)
+			if optclientid != nil {
+				duid := optclientid.(*dhcpv6.OptClientId).ClientID()
+				sample["duid"] = dhcplb.FormatID(duid.ToBytes())
+				mac := duid.LinkLayerAddr
+				if mac == nil {
+					mac, err = dhcplb.Mac(packet)
+					if err != nil {
+						glog.Errorf("error getting mac: %s", err)
+					}
+				}
+				sample["client_mac"] = dhcplb.FormatID(mac)
+				duidtypename, ok := dhcpv6.DuidTypeToString[duid.Type]
+				if ok {
+					sample["duid_type"] = duidtypename
+				}
+			}
+			if packet.IsRelay() {
+				relay := packet.(*dhcpv6.DHCPv6Relay)
+				sample["link-addr"] = relay.LinkAddr().String()
+				sample["peer-addr"] = relay.PeerAddr().String()
 			}
 		}
 	}

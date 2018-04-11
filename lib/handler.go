@@ -14,6 +14,8 @@ import (
 	"fmt"
 	"github.com/golang/glog"
 	"github.com/insomniacslk/dhcp/dhcpv4"
+	"github.com/insomniacslk/dhcp/dhcpv6"
+	"github.com/mdlayher/eui64"
 	"net"
 	"runtime/debug"
 	"sync"
@@ -81,6 +83,25 @@ func FormatID(buf []byte) string {
 		}
 	}
 	return string(str)
+}
+
+// Mac looks into the inner most PeerAddr field in the RelayInfo header.
+// This contains the EUI-64 address of the client making the request, populated
+// by the dhcp relay, it is possible to extract the mac address from that IP.
+// If a mac address cannot be found an error will be returned.
+func Mac(packet dhcpv6.DHCPv6) ([]byte, error) {
+	if !packet.IsRelay() {
+		return nil, fmt.Errorf("It is not possible to get the inner most relay")
+	}
+	ip, err := packet.(*dhcpv6.DHCPv6Relay).GetInnerPeerAddr()
+	if err != nil {
+		return nil, err
+	}
+	_, mac, err := eui64.ParseIP(ip)
+	if err != nil {
+		return nil, err
+	}
+	return mac, nil
 }
 
 func selectDestinationServer(config *Config, message *DHCPMessage) (*DHCPServer, error) {
@@ -230,68 +251,72 @@ func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer 
 func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr, throttle Throttle) {
 	// runs in a separate go routine
 	start := time.Now()
-	packet := Packet6(buffer)
-
-	t, err := packet.Type()
+	packet, err := dhcpv6.FromBytes(buffer)
 	if err != nil {
-		glog.Errorf("Failed to get packet type: %s", err)
+		glog.Errorf("Error encoding DHCPv6 packet: %s", err)
+		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 		return
 	}
-	if t == RelayRepl {
+
+	if packet.Type() == dhcpv6.RELAY_REPL {
 		handleV6RelayRepl(logger, start, packet, peer)
 		return
 	}
 
 	var message DHCPMessage
 
-	xid, err := packet.XID()
-	if err != nil {
-		glog.Errorf("Failed to extract XId, drop due to %s", err)
-		logger.LogErr(start, nil, packet, peer, ErrParse, err)
-		return
+	msg := packet
+	if msg.IsRelay() {
+		msg, err = msg.(*dhcpv6.DHCPv6Relay).GetInnerMessage()
+		if err != nil {
+			glog.Errorf("Error getting inner message: %s", err)
+			logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			return
+		}
 	}
-	message.XID = xid
+	message.XID = msg.(*dhcpv6.DHCPv6Message).TransactionID()
 	message.Peer = peer
-	duid, err := packet.Duid()
-	if err != nil {
-		glog.Errorf("Failed to extract DUID, drop due to %s", err)
-		logger.LogErr(start, nil, packet, peer, ErrParse, err)
+
+	optclientid := msg.GetOneOption(dhcpv6.OPTION_CLIENTID)
+	if optclientid == nil {
+		glog.Errorf("Failed to extract Client ID, drop due to %s", err)
+		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 		return
 	}
-	message.ClientID = duid
-	mac, err := packet.Mac()
-	if err != nil {
-		glog.Errorf("Failed to extract MAC, drop due to %s", err)
-		logger.LogErr(start, nil, packet, peer, ErrParse, err)
-		return
+	duid := optclientid.(*dhcpv6.OptClientId).ClientID()
+	message.ClientID = duid.ToBytes()
+	mac := duid.LinkLayerAddr
+	if mac == nil {
+		mac, err = Mac(packet)
+		if err != nil {
+			glog.Errorf("Failed to extract MAC, drop due to %s", err)
+			logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			return
+		}
 	}
 	message.Mac = mac
 
-	hops, _ := packet.Hops()
-	link, _ := packet.LinkAddr()
-	peerAddr, _ := packet.PeerAddr()
-
 	server, err := selectDestinationServer(config, &message)
 	if err != nil {
-		glog.Errorf("Xid: 0x%x, Type: %s, Hops+1: %x, LinkAddr: %s, PeerAddr: %s, "+
-			"DUID: %s, Drop due to %s", message.XID, t, hops, link, peerAddr, FormatID(duid), err)
-		logger.LogErr(start, nil, packet, peer, ErrNoServer, err)
+		glog.Errorf("%s, Drop due to %s", packet.Summary(), err)
+		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrNoServer, err)
 		return
 	}
 
-	relayMsg := packet.Encapsulate(peer.IP)
-	sendToServer(logger, start, server, relayMsg, peer, throttle)
+	relayMsg, err := dhcpv6.EncapsulateRelay(packet, dhcpv6.RELAY_FORW, net.IPv6zero, peer.IP)
+	sendToServer(logger, start, server, relayMsg.ToBytes(), peer, throttle)
 }
 
-func handleV6RelayRepl(logger loggerHelper, start time.Time, packet Packet6, peer *net.UDPAddr) {
+func handleV6RelayRepl(logger loggerHelper, start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
 	// when we get a relay-reply, we need to unwind the message, removing the top
 	// relay-reply info and passing on the inner part of the message
-	msg, peerAddr, err := packet.Unwind()
+	msg, err := dhcpv6.DecapsulateRelay(packet)
 	if err != nil {
-		glog.Errorf("Failed to unwind packet, drop due to %s", err)
-		logger.LogErr(start, nil, packet, peer, ErrParse, err)
+		glog.Errorf("Failed to decapsulate packet, drop due to %s", err)
+		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 		return
 	}
+	peerAddr := packet.(*dhcpv6.DHCPv6Relay).PeerAddr()
 	// send the packet to the peer addr
 	addr := &net.UDPAddr{
 		IP:   peerAddr,
@@ -301,11 +326,11 @@ func handleV6RelayRepl(logger loggerHelper, start time.Time, packet Packet6, pee
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
 		glog.Errorf("Error creating udp connection %s", err)
-		logger.LogErr(start, nil, packet, peer, ErrConnect, err)
+		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrConnect, err)
 		return
 	}
-	conn.Write(msg)
-	err = logger.LogSuccess(start, nil, packet, peer)
+	conn.Write(msg.ToBytes())
+	err = logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if err != nil {
 		glog.Errorf("Failed to log request: %s", err)
 	}

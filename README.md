@@ -97,6 +97,7 @@ $ go get github.com/golang/glog
 $ go get github.com/facebookgo/ensure
 $ go get github.com/hashicorp/golang-lru
 $ go get github.com/insomniacslk/dhcp/dhcpv4
+$ go get github.com/insomniacslk/dhcp/dhcpv6
 $ go get golang.org/x/time/rate
 $ go get github.com/mdlayher/eui64
 ```
