@@ -16,10 +16,20 @@ import (
 
 // DHCPMessage represents coordinates of a dhcp message.
 type DHCPMessage struct {
-	XID      uint32
-	Peer     *net.UDPAddr
-	ClientID []byte
-	Mac      []byte
+	XID        uint32
+	Peer       *net.UDPAddr
+	ClientID   []byte
+	Mac        []byte
+	VendorData VendorData
+}
+
+// VendorData is optional data a particular vendor may or may not include
+// in the Vendor Class options.  All values are optional and will be zero
+// values if not found.
+type VendorData struct {
+	VendorName string
+	Model      string
+	Serial     string
 }
 
 type id string

@@ -3,6 +3,8 @@ package dhcplb
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
@@ -38,5 +40,90 @@ func Test_Mac(t *testing.T) {
 	}
 	if FormatID(mac) != "24:8a:07:56:dc:a4" {
 		t.Fatalf("Expected mac %s but got %s", "24:8a:07:56:de:b0", FormatID(mac))
+	}
+}
+
+func TestParseV4VendorClass(t *testing.T) {
+	tt := []struct {
+		name  string
+		input string
+		want  VendorData
+		fail  bool
+	}{
+		{name: "empty", fail: true},
+		{name: "unknownVendor", input: "VendorX;BFR10K;XX12345", fail: true},
+		{name: "truncatedVendor", input: "Arista;1234", fail: true},
+		{
+			name:  "arista",
+			input: "Arista;DCS-7050S-64;01.23;JPE12345678",
+			want: VendorData{
+				VendorName: "Arista", Model: "DCS-7050S-64", Serial: "JPE12345678"},
+		},
+		{
+			name:  "juniper",
+			input: "Juniper-ptx1000-DD123",
+			want:  VendorData{VendorName: "Juniper", Model: "ptx1000", Serial: "DD123"},
+		},
+		{
+			name:  "zpe",
+			input: "ZPESystems:NSC:001234567",
+			want:  VendorData{VendorName: "ZPESystems", Model: "NSC", Serial: "001234567"},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			opt := dhcpv4.OptClassIdentifier{
+				Identifier: tc.input,
+			}
+
+			vd := VendorData{}
+
+			if err := parseV4VendorClass(&vd, &opt); err != nil && !tc.fail {
+				t.Errorf("unexpected failure: %v", err)
+			}
+
+			if !cmp.Equal(tc.want, vd) {
+				t.Errorf("unexpected VendorData:\n%s", cmp.Diff(tc.want, vd))
+			}
+		})
+	}
+}
+
+func TestParseV4VIVC(t *testing.T) {
+	tt := []struct {
+		name  string
+		entID uint32
+		input []byte
+		want  VendorData
+		fail  bool
+	}{
+		{name: "empty", fail: true},
+		{
+			name:  "ciscoIOSXR",
+			entID: 0x09,
+			input: []byte("SN:0;PID:R-IOSXRV9000-CC"),
+			want:  VendorData{VendorName: "Cisco Systems", Model: "R-IOSXRV9000-CC", Serial: "0"},
+		},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			opt := dhcpv4.OptVIVC{
+				Identifiers: []dhcpv4.VIVCIdentifier{
+					{EntID: tc.entID, Data: tc.input},
+				},
+			}
+
+			vd := VendorData{}
+
+			if err := parseV4VIVC(&vd, &opt); err != nil && !tc.fail {
+				t.Errorf("unexpected failure: %v", err)
+			}
+
+			if !cmp.Equal(tc.want, vd) {
+				t.Errorf("unexpected VendorData:\n%s", cmp.Diff(tc.want, vd))
+			}
+		})
 	}
 }
