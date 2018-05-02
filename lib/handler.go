@@ -289,7 +289,7 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 		return
 	}
-	duid := optclientid.(*dhcpv6.OptClientId).ClientID()
+	duid := optclientid.(*dhcpv6.OptClientId).Cid
 	message.ClientID = duid.ToBytes()
 	mac := duid.LinkLayerAddr
 	if mac == nil {
