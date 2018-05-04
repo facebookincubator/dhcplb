@@ -20,6 +20,7 @@ type DHCPMessage struct {
 	Peer       *net.UDPAddr
 	ClientID   []byte
 	Mac        []byte
+	NetBoot    bool
 	VendorData VendorData
 }
 

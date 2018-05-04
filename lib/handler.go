@@ -240,6 +240,15 @@ func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer 
 	message.ClientID = clientHwAddr[:hwAddrLen]
 	message.Mac = clientHwAddr[:hwAddrLen]
 
+	for _, o := range packet.Options() {
+		if o.Code() == dhcpv4.OptionVendorSpecificInformation ||
+			o.Code() == dhcpv4.OptionTFTPServerName ||
+			o.Code() == dhcpv4.OptionBootfileName {
+			message.NetBoot = true
+			break
+		}
+	}
+
 	packet.SetHopCount(packet.HopCount() + 1)
 
 	message.VendorData = VendorDataV4(packet)
@@ -301,6 +310,16 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 		}
 	}
 	message.Mac = mac
+
+	optoro := msg.GetOneOption(dhcpv6.OPTION_ORO)
+	if optoro != nil {
+		for _, o := range optoro.(*dhcpv6.OptRequestedOption).RequestedOptions() {
+			if o == dhcpv6.OPT_BOOTFILE_URL {
+				message.NetBoot = true
+				break
+			}
+		}
+	}
 
 	server, err := selectDestinationServer(config, &message)
 	if err != nil {
