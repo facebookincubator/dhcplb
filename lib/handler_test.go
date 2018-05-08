@@ -65,6 +65,11 @@ func TestParseV4VendorClass(t *testing.T) {
 			want:  VendorData{VendorName: "Juniper", Model: "ptx1000", Serial: "DD123"},
 		},
 		{
+			name:  "juniper",
+			input: "Juniper-qfx10002-36q-DN817",
+			want:  VendorData{VendorName: "Juniper", Model: "qfx10002-36q", Serial: "DN817"},
+		},
+		{
 			name:  "zpe",
 			input: "ZPESystems:NSC:001234567",
 			want:  VendorData{VendorName: "ZPESystems", Model: "NSC", Serial: "001234567"},

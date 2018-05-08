@@ -418,15 +418,21 @@ func parseV4VendorClass(vd *VendorData, opt *dhcpv4.OptClassIdentifier) error {
 		return nil
 
 	// Juniper-ptx1000-DD576
+	// Juniper also has cases where the model number may have a '-' in it as
+	// well e.g.: Juniper-qfx10002-36q-DN817. Brillant Juniper. Brillant.
 	case strings.HasPrefix(vc, "Juniper-"):
-		p := strings.Split(vc, "-")
-		if len(p) < 3 {
+		idx := strings.Index(vc, "-")
+		if idx == -1 {
+			return errVendorOptionMalformed
+		}
+		lastIdx := strings.LastIndex(vc, "-")
+		if lastIdx == -1 {
 			return errVendorOptionMalformed
 		}
 
-		vd.VendorName = p[0]
-		vd.Model = p[1]
-		vd.Serial = p[2]
+		vd.VendorName = vc[0:idx]
+		vd.Model = vc[idx+1 : lastIdx]
+		vd.Serial = vc[lastIdx+1:]
 		return nil
 	}
 
