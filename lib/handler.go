@@ -17,7 +17,6 @@ import (
 	"net"
 	"runtime/debug"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -39,35 +38,35 @@ const (
 	ErrConnRate = "E_CONN_RATE"
 )
 
-func handleConnection(conn *net.UDPConn, config *Config, logger loggerHelper, bufPool *sync.Pool, throttle Throttle) {
-	buffer := bufPool.Get().([]byte)
-	bytesRead, peer, err := conn.ReadFromUDP(buffer)
+func (s *serverImpl) handleConnection() {
+	buffer := s.bufPool.Get().([]byte)
+	bytesRead, peer, err := s.conn.ReadFromUDP(buffer)
 	if err != nil || bytesRead == 0 {
-		bufPool.Put(buffer)
+		s.bufPool.Put(buffer)
 		msg := "error reading from %s: %v"
 		glog.Errorf(msg, peer, err)
-		logger.LogErr(time.Now(), nil, nil, peer, ErrRead, err)
+		s.logger.LogErr(time.Now(), nil, nil, peer, ErrRead, err)
 		return
 	}
 
 	go func() {
 		defer func() {
 			// always release this routine's buffer back to the pool
-			bufPool.Put(buffer)
+			s.bufPool.Put(buffer)
 
 			if r := recover(); r != nil {
-				glog.Errorf("Panicked handling v%d packet from %s: %s", config.Version, peer, r)
+				glog.Errorf("Panicked handling v%d packet from %s: %s", s.config.Version, peer, r)
 				glog.Errorf("Offending packet: %x", buffer[:bytesRead])
 				err, _ := r.(error)
-				logger.LogErr(time.Now(), nil, nil, peer, ErrPanic, err)
+				s.logger.LogErr(time.Now(), nil, nil, peer, ErrPanic, err)
 				glog.Errorf("%s: %s", r, debug.Stack())
 			}
 		}()
 
-		if config.Version == 4 {
-			handleRawPacketV4(logger, config, buffer[:bytesRead], peer, throttle)
-		} else if config.Version == 6 {
-			handleRawPacketV6(logger, config, buffer[:bytesRead], peer, throttle)
+		if s.config.Version == 4 {
+			s.handleRawPacketV4(buffer[:bytesRead], peer)
+		} else if s.config.Version == 6 {
+			s.handleRawPacketV6(buffer[:bytesRead], peer)
 		}
 	}()
 }
@@ -222,14 +221,19 @@ func sendToServer(logger loggerHelper, start time.Time, server *DHCPServer, pack
 	return nil
 }
 
-func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr, throttle Throttle) {
+func (s *serverImpl) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	// runs in a separate go routine
 	start := time.Now()
 	var message DHCPMessage
 	packet, err := dhcpv4.FromBytes(buffer)
 	if err != nil {
 		glog.Errorf("Error encoding DHCPv4 packet: %s", err)
-		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+		s.logger.LogErr(start, nil, nil, peer, ErrParse, err)
+		return
+	}
+
+	if s.server {
+		// FIXME use s.config.Handler.ServeDHCPv4(packet)
 		return
 	}
 
@@ -253,28 +257,50 @@ func handleRawPacketV4(logger loggerHelper, config *Config, buffer []byte, peer 
 
 	message.VendorData = VendorDataV4(packet)
 
-	server, err := selectDestinationServer(config, &message)
+	server, err := selectDestinationServer(s.config, &message)
 	if err != nil {
 		glog.Errorf("%s, Drop due to %s", packet.Summary(), err)
-		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrNoServer, err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrNoServer, err)
 		return
 	}
 
-	sendToServer(logger, start, server, packet.ToBytes(), peer, throttle)
+	sendToServer(s.logger, start, server, packet.ToBytes(), peer, s.throttle)
 }
 
-func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer *net.UDPAddr, throttle Throttle) {
+func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	// runs in a separate go routine
 	start := time.Now()
 	packet, err := dhcpv6.FromBytes(buffer)
 	if err != nil {
 		glog.Errorf("Error encoding DHCPv6 packet: %s", err)
-		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+		s.logger.LogErr(start, nil, nil, peer, ErrParse, err)
+		return
+	}
+
+	if s.server {
+		reply, err := s.config.Handler.ServeDHCPv6(packet)
+		if err != nil {
+			glog.Errorf("Error creating reply %s", err)
+			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			return
+		}
+		conn, err := net.DialUDP("udp", nil, peer)
+		if err != nil {
+			glog.Errorf("Error creating udp connection %s", err)
+			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			return
+		}
+		conn.Write(reply.ToBytes())
+		err = s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
+		if err != nil {
+			glog.Errorf("Failed to log reply: %s", err)
+		}
+		conn.Close()
 		return
 	}
 
 	if packet.Type() == dhcpv6.RELAY_REPL {
-		handleV6RelayRepl(logger, start, packet, peer)
+		handleV6RelayRepl(s.logger, start, packet, peer)
 		return
 	}
 
@@ -285,7 +311,7 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 		msg, err = msg.(*dhcpv6.DHCPv6Relay).GetInnerMessage()
 		if err != nil {
 			glog.Errorf("Error getting inner message: %s", err)
-			logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 			return
 		}
 	}
@@ -294,8 +320,9 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 
 	optclientid := msg.GetOneOption(dhcpv6.OPTION_CLIENTID)
 	if optclientid == nil {
-		glog.Errorf("Failed to extract Client ID, drop due to %s", err)
-		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+		errMsg := errors.New("Failed to extract Client ID")
+		glog.Errorf("%v", errMsg)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, errMsg)
 		return
 	}
 	duid := optclientid.(*dhcpv6.OptClientId).Cid
@@ -305,7 +332,7 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 		mac, err = Mac(packet)
 		if err != nil {
 			glog.Errorf("Failed to extract MAC, drop due to %s", err)
-			logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 			return
 		}
 	}
@@ -321,15 +348,15 @@ func handleRawPacketV6(logger loggerHelper, config *Config, buffer []byte, peer 
 		}
 	}
 
-	server, err := selectDestinationServer(config, &message)
+	server, err := selectDestinationServer(s.config, &message)
 	if err != nil {
 		glog.Errorf("%s, Drop due to %s", packet.Summary(), err)
-		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrNoServer, err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrNoServer, err)
 		return
 	}
 
 	relayMsg, err := dhcpv6.EncapsulateRelay(packet, dhcpv6.RELAY_FORW, net.IPv6zero, peer.IP)
-	sendToServer(logger, start, server, relayMsg.ToBytes(), peer, throttle)
+	sendToServer(s.logger, start, server, relayMsg.ToBytes(), peer, s.throttle)
 }
 
 func handleV6RelayRepl(logger loggerHelper, start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {

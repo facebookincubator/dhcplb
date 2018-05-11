@@ -19,7 +19,7 @@ import (
 
 // UDP acceptor
 type serverImpl struct {
-	version       int
+	server        bool
 	conn          *net.UDPConn
 	logger        loggerHelper
 	config        *Config
@@ -36,12 +36,14 @@ func (s *serverImpl) getConfig() *Config {
 }
 
 func (s *serverImpl) ListenAndServe() error {
-	s.StartUpdatingServerList()
+	if !s.server {
+		s.StartUpdatingServerList()
+	}
 
 	glog.Infof("Started thrift server, processing DHCP requests...")
 
 	for {
-		handleConnection(s.conn, s.getConfig(), s.logger, &s.bufPool, s.throttle)
+		s.handleConnection()
 	}
 }
 
@@ -59,7 +61,7 @@ func (s *serverImpl) HasServers() bool {
 }
 
 // NewServer initialized a Server before returning it.
-func NewServer(config *Config, version int, personalizedLogger PersonalizedLogger) (Server, error) {
+func NewServer(config *Config, serverMode bool, personalizedLogger PersonalizedLogger) (Server, error) {
 	conn, err := net.ListenUDP("udp", config.Addr)
 	if err != nil {
 		return nil, err
@@ -67,15 +69,15 @@ func NewServer(config *Config, version int, personalizedLogger PersonalizedLogge
 
 	// setup logger
 	var loggerHelper = &loggerHelperImpl{
-		version:            version,
+		version:            config.Version,
 		personalizedLogger: personalizedLogger,
 	}
 
 	server := &serverImpl{
-		version: version,
-		conn:    conn,
-		logger:  loggerHelper,
-		config:  config,
+		server: serverMode,
+		conn:   conn,
+		logger: loggerHelper,
+		config: config,
 	}
 
 	// pool to reuse packet buffers

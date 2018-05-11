@@ -66,7 +66,7 @@ func main() {
 	// channels, however, here we are only listening to it from one goroutine
 	configChan := configBcast.NewReceiver()
 
-	server, err := dhcplb.NewServer(config, *version, logger)
+	server, err := dhcplb.NewServer(config, false, logger)
 	if err != nil {
 		glog.Fatal(err)
 		return

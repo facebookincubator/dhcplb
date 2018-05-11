@@ -51,3 +51,9 @@ func (h DefaultConfigProvider) ParseExtras(data json.RawMessage) (interface{}, e
 func (h DefaultConfigProvider) NewDHCPBalancingAlgorithm(version int) (dhcplb.DHCPBalancingAlgorithm, error) {
 	return nil, nil
 }
+
+// NewHandler returns a Handler used for serving DHCP requests.
+// It is only needed when using dhcplb in server mode.
+func (h DefaultConfigProvider) NewHandler() dhcplb.Handler {
+	return nil
+}

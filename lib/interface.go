@@ -12,6 +12,9 @@ package dhcplb
 import (
 	"fmt"
 	"net"
+
+	"github.com/insomniacslk/dhcp/dhcpv4"
+	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
 // DHCPMessage represents coordinates of a dhcp message.
@@ -74,4 +77,10 @@ type Throttle interface {
 	OK(interface{}) (bool, error)
 	// Returns the number of items
 	len() int
+}
+
+// Handler is an interface used while serving DHCP requests.
+type Handler interface {
+	ServeDHCPv4(packet *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, error)
+	ServeDHCPv6(packet dhcpv6.DHCPv6) (dhcpv6.DHCPv6, error)
 }

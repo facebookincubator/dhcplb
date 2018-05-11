@@ -22,13 +22,14 @@ import (
 )
 
 // ConfigProvider is an interface which provides methods to fetch the
-// HostSourcer, parse extra configuration and provide additional load balancing
-// implementations.
+// HostSourcer, parse extra configuration, provide additional load balancing
+// implementations and how to handle dhcp requests in server mode
 type ConfigProvider interface {
 	NewHostSourcer(
 		sourcerType, args string, version int) (DHCPServerSourcer, error)
 	ParseExtras(extras json.RawMessage) (interface{}, error)
 	NewDHCPBalancingAlgorithm(version int) (DHCPBalancingAlgorithm, error)
+	NewHandler() Handler
 }
 
 // Config represents the server configuration.
@@ -38,6 +39,7 @@ type Config struct {
 	Algorithm            DHCPBalancingAlgorithm
 	ServerUpdateInterval time.Duration
 	PacketBufSize        int
+	Handler              Handler
 	HostSourcer          DHCPServerSourcer
 	FreeConnTimeout      time.Duration
 	RCRatio              uint32
@@ -294,6 +296,7 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 	if err != nil {
 		return nil, err
 	}
+	handler := provider.NewHandler()
 
 	// extras
 	extras, err := provider.ParseExtras(spec.Extras)
@@ -308,6 +311,7 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 		ServerUpdateInterval: time.Duration(
 			spec.UpdateServerInterval) * time.Second,
 		PacketBufSize:   spec.PacketBufSize,
+		Handler:         handler,
 		HostSourcer:     sourcer,
 		FreeConnTimeout: time.Duration(spec.FreeConnTimeout) * time.Second,
 		RCRatio:         spec.RCRatio,
