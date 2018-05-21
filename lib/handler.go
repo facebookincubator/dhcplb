@@ -397,19 +397,14 @@ var errVendorOptionMalformed = errors.New("malformed vendor option")
 func VendorDataV4(packet *dhcpv4.DHCPv4) VendorData {
 	vd := VendorData{}
 
-	for _, opt := range packet.Options() {
-		switch opt.Code() {
-		case dhcpv4.OptionClassIdentifier:
-			if err := parseV4VendorClass(&vd, opt.(*dhcpv4.OptClassIdentifier)); err != nil {
-				glog.Errorf("failed to parse vendor data from vendor class: %v", err)
-			}
-		case dhcpv4.OptionVendorIdentifyingVendorClass:
-			if err := parseV4VIVC(&vd, opt.(*dhcpv4.OptVIVC)); err != nil {
-				glog.Errorf("failed to parse vendor data from vendor-idenitifying vendor class: %v", err)
-			}
-		}
-
+	if err := parseV4VendorClass(&vd, packet); err != nil {
+		glog.Errorf("failed to parse vendor data from vendor class: %v", err)
 	}
+
+	if err := parseV4VIVC(&vd, packet); err != nil {
+		glog.Errorf("failed to parse vendor data from vendor-idenitifying vendor class: %v", err)
+	}
+
 	return vd
 }
 
@@ -417,8 +412,13 @@ func VendorDataV4(packet *dhcpv4.DHCPv4) VendorData {
 // DHCPv4.  The option is formatted as a string with the content being specific
 // for the vendor, usually using a deliminator to separate the values.
 // See: https://tools.ietf.org/html/rfc1533#section-9.11
-func parseV4VendorClass(vd *VendorData, opt *dhcpv4.OptClassIdentifier) error {
-	vc := opt.Identifier
+func parseV4VendorClass(vd *VendorData, packet *dhcpv4.DHCPv4) error {
+	opt := packet.GetOneOption(dhcpv4.OptionClassIdentifier)
+	if opt == nil {
+		return nil
+	}
+	vc := opt.(*dhcpv4.OptClassIdentifier).Identifier
+
 	switch {
 	// Arista;DCS-7050S-64;01.23;JPE12221671
 	case strings.HasPrefix(vc, "Arista;"):
@@ -444,22 +444,29 @@ func parseV4VendorClass(vd *VendorData, opt *dhcpv4.OptClassIdentifier) error {
 		vd.Serial = p[2]
 		return nil
 
-	// Juniper-ptx1000-DD576
-	// Juniper also has cases where the model number may have a '-' in it as
-	// well e.g.: Juniper-qfx10002-36q-DN817. Brillant Juniper. Brillant.
+	// Juniper option 60 parsing is a bit more nuanced.  The following are all
+	// "valid" indetifing stings for Juniper:
+	//    Juniper-ptx1000-DD576      <vendor>-<model>-<serial
+	//    Juniper-qfx10008           <vendor>-<model> (serial in hostname option)
+	//    Juniper-qfx10002-361-DN817 <vendor>-<model>-<serial> (model has a dash in it!)
 	case strings.HasPrefix(vc, "Juniper-"):
-		idx := strings.Index(vc, "-")
-		if idx == -1 {
-			return errVendorOptionMalformed
-		}
-		lastIdx := strings.LastIndex(vc, "-")
-		if lastIdx == -1 {
-			return errVendorOptionMalformed
-		}
+		// strip of the prefix
+		vc := vc[len("Juniper-"):]
+		vd.VendorName = "Juniper"
 
-		vd.VendorName = vc[0:idx]
-		vd.Model = vc[idx+1 : lastIdx]
-		vd.Serial = vc[lastIdx+1:]
+		sepIdx := strings.LastIndex(vc, "-")
+		if sepIdx == -1 {
+			// No separator was found. Attempt serial number from the hostname
+			if opt := packet.GetOneOption(dhcpv4.OptionHostName); opt != nil {
+				data := opt.(*dhcpv4.OptionGeneric).Data
+				vd.Serial = string(data)
+			}
+		} else {
+			vd.Serial = vc[sepIdx+1:]
+			vc = vc[:sepIdx]
+		}
+		vd.Model = vc
+
 		return nil
 	}
 
@@ -474,8 +481,14 @@ const entIDCiscoSystems = 0x9
 // format with an indentifying enterprise number.
 //
 // See: https://tools.ietf.org/html/rfc3925
-func parseV4VIVC(vd *VendorData, opt *dhcpv4.OptVIVC) error {
-	for _, id := range opt.Identifiers {
+func parseV4VIVC(vd *VendorData, packet *dhcpv4.DHCPv4) error {
+	opt := packet.GetOneOption(dhcpv4.OptionVendorIdentifyingVendorClass)
+	if opt == nil {
+		return nil
+	}
+	ids := opt.(*dhcpv4.OptVIVC).Identifiers
+
+	for _, id := range ids {
 		if id.EntID == entIDCiscoSystems {
 			vd.VendorName = "Cisco Systems"
 

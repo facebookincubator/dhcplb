@@ -45,46 +45,79 @@ func Test_Mac(t *testing.T) {
 
 func TestParseV4VendorClass(t *testing.T) {
 	tt := []struct {
-		name  string
-		input string
-		want  VendorData
-		fail  bool
+		name         string
+		vc, hostname string
+		want         VendorData
+		fail         bool
 	}{
 		{name: "empty", fail: true},
-		{name: "unknownVendor", input: "VendorX;BFR10K;XX12345", fail: true},
-		{name: "truncatedVendor", input: "Arista;1234", fail: true},
+		{name: "unknownVendor", vc: "VendorX;BFR10K;XX12345", fail: true},
+		{name: "truncatedVendor", vc: "Arista;1234", fail: true},
 		{
-			name:  "arista",
-			input: "Arista;DCS-7050S-64;01.23;JPE12345678",
+			name: "arista",
+			vc:   "Arista;DCS-7050S-64;01.23;JPE12345678",
 			want: VendorData{
 				VendorName: "Arista", Model: "DCS-7050S-64", Serial: "JPE12345678"},
 		},
 		{
-			name:  "juniper",
-			input: "Juniper-ptx1000-DD123",
-			want:  VendorData{VendorName: "Juniper", Model: "ptx1000", Serial: "DD123"},
+			name: "juniper",
+			vc:   "Juniper-ptx1000-DD123",
+			want: VendorData{VendorName: "Juniper", Model: "ptx1000", Serial: "DD123"},
 		},
 		{
-			name:  "juniper",
-			input: "Juniper-qfx10002-36q-DN817",
-			want:  VendorData{VendorName: "Juniper", Model: "qfx10002-36q", Serial: "DN817"},
+			name: "juniperModelDash",
+			vc:   "Juniper-qfx10002-36q-DN817",
+			want: VendorData{VendorName: "Juniper", Model: "qfx10002-36q", Serial: "DN817"},
 		},
 		{
-			name:  "zpe",
-			input: "ZPESystems:NSC:001234567",
-			want:  VendorData{VendorName: "ZPESystems", Model: "NSC", Serial: "001234567"},
+			name:     "juniperHostnameSerial",
+			vc:       "Juniper-qfx10008",
+			hostname: "DE123",
+			want:     VendorData{VendorName: "Juniper", Model: "qfx10008", Serial: "DE123"},
+		},
+		{
+			name: "juniperNoSerial",
+			vc:   "Juniper-qfx10008",
+			want: VendorData{VendorName: "Juniper", Model: "qfx10008", Serial: ""},
+		},
+		{
+			name: "juniperInvalid",
+			vc:   "Juniper-",
+			want: VendorData{VendorName: "Juniper", Model: "", Serial: ""},
+		},
+		{
+			name: "juniperInvalid2",
+			vc:   "Juniper-qfx99999-",
+			want: VendorData{VendorName: "Juniper", Model: "qfx99999", Serial: ""},
+		},
+		{
+			name: "zpe",
+			vc:   "ZPESystems:NSC:001234567",
+			want: VendorData{VendorName: "ZPESystems", Model: "NSC", Serial: "001234567"},
 		},
 	}
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			opt := dhcpv4.OptClassIdentifier{
-				Identifier: tc.input,
+			packet, err := dhcpv4.New()
+			if err != nil {
+				t.Fatalf("failed to creat dhcpv4 packet object: %v", err)
+			}
+
+			packet.AddOption(&dhcpv4.OptClassIdentifier{
+				Identifier: tc.vc,
+			})
+
+			if tc.hostname != "" {
+				packet.AddOption(&dhcpv4.OptionGeneric{
+					OptionCode: dhcpv4.OptionHostName,
+					Data:       []byte(tc.hostname),
+				})
 			}
 
 			vd := VendorData{}
 
-			if err := parseV4VendorClass(&vd, &opt); err != nil && !tc.fail {
+			if err := parseV4VendorClass(&vd, packet); err != nil && !tc.fail {
 				t.Errorf("unexpected failure: %v", err)
 			}
 
@@ -114,15 +147,19 @@ func TestParseV4VIVC(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Run(tc.name, func(t *testing.T) {
-			opt := dhcpv4.OptVIVC{
+			packet, err := dhcpv4.New()
+			if err != nil {
+				t.Fatalf("failed to creat dhcpv4 packet object: %v", err)
+			}
+			packet.AddOption(&dhcpv4.OptVIVC{
 				Identifiers: []dhcpv4.VIVCIdentifier{
 					{EntID: tc.entID, Data: tc.input},
 				},
-			}
+			})
 
 			vd := VendorData{}
 
-			if err := parseV4VIVC(&vd, &opt); err != nil && !tc.fail {
+			if err := parseV4VIVC(&vd, packet); err != nil && !tc.fail {
 				t.Errorf("unexpected failure: %v", err)
 			}
 
