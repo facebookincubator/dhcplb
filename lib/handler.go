@@ -284,7 +284,12 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 			return
 		}
-		conn, err := net.DialUDP("udp", nil, peer)
+		addr := &net.UDPAddr{
+			IP:   peer.IP,
+			Port: dhcpv6.DefaultServerPort,
+			Zone: "",
+		}
+		conn, err := net.DialUDP("udp", nil, addr)
 		if err != nil {
 			glog.Errorf("Error creating udp connection %s", err)
 			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
@@ -372,7 +377,7 @@ func handleV6RelayRepl(logger loggerHelper, start time.Time, packet dhcpv6.DHCPv
 	// send the packet to the peer addr
 	addr := &net.UDPAddr{
 		IP:   peerAddr,
-		Port: int(547),
+		Port: dhcpv6.DefaultServerPort,
 		Zone: "",
 	}
 	conn, err := net.DialUDP("udp", nil, addr)
