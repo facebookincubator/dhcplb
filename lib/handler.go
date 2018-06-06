@@ -36,6 +36,7 @@ const (
 	ErrParse    = "E_PARSE"
 	ErrNoServer = "E_NO_SERVER"
 	ErrConnRate = "E_CONN_RATE"
+	ErrServe    = "E_SERVE"
 )
 
 func (s *serverImpl) handleConnection() {
@@ -278,10 +279,14 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	if s.server {
+		err = s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
+		if err != nil {
+			glog.Errorf("Failed to log incoming packet: %s", err)
+		}
 		reply, err := s.config.Handler.ServeDHCPv6(packet)
 		if err != nil {
 			glog.Errorf("Error creating reply %s", err)
-			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrServe, err)
 			return
 		}
 		addr := &net.UDPAddr{
@@ -292,7 +297,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 		conn, err := net.DialUDP("udp", nil, addr)
 		if err != nil {
 			glog.Errorf("Error creating udp connection %s", err)
-			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrConnect, err)
 			return
 		}
 		conn.Write(reply.ToBytes())
