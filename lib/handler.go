@@ -279,11 +279,11 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	if s.server {
-		err = s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
-		if err != nil {
-			glog.Errorf("Failed to log incoming packet: %s", err)
-		}
 		reply, err := s.config.Handler.ServeDHCPv6(packet)
+		logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
+		if logErr != nil {
+			glog.Errorf("Failed to log incoming packet: %s", logErr)
+		}
 		if err != nil {
 			glog.Errorf("Error creating reply %s", err)
 			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrServe, err)
@@ -347,16 +347,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 		}
 	}
 	message.Mac = mac
-
-	optoro := msg.GetOneOption(dhcpv6.OPTION_ORO)
-	if optoro != nil {
-		for _, o := range optoro.(*dhcpv6.OptRequestedOption).RequestedOptions() {
-			if o == dhcpv6.OPT_BOOTFILE_URL {
-				message.NetBoot = true
-				break
-			}
-		}
-	}
+	message.NetBoot = dhcpv6.IsNetboot(msg)
 
 	server, err := selectDestinationServer(s.config, &message)
 	if err != nil {
