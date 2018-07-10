@@ -310,7 +310,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	if packet.Type() == dhcpv6.RELAY_REPL {
-		handleV6RelayRepl(s.logger, start, packet, peer)
+		s.handleV6RelayRepl(start, packet, peer)
 		return
 	}
 
@@ -360,13 +360,13 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	sendToServer(s.logger, start, server, relayMsg.ToBytes(), peer, s.throttle)
 }
 
-func handleV6RelayRepl(logger loggerHelper, start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
+func (s *serverImpl) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
 	// when we get a relay-reply, we need to unwind the message, removing the top
 	// relay-reply info and passing on the inner part of the message
 	msg, err := dhcpv6.DecapsulateRelay(packet)
 	if err != nil {
 		glog.Errorf("Failed to decapsulate packet, drop due to %s", err)
-		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 		return
 	}
 	peerAddr := packet.(*dhcpv6.DHCPv6Relay).PeerAddr()
@@ -376,14 +376,14 @@ func handleV6RelayRepl(logger loggerHelper, start time.Time, packet dhcpv6.DHCPv
 		Port: dhcpv6.DefaultServerPort,
 		Zone: "",
 	}
-	conn, err := net.DialUDP("udp", nil, addr)
+	conn, err := net.DialUDP("udp", s.config.ReplyAddr, addr)
 	if err != nil {
 		glog.Errorf("Error creating udp connection %s", err)
-		logger.LogErr(start, nil, packet.ToBytes(), peer, ErrConnect, err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrConnect, err)
 		return
 	}
 	conn.Write(msg.ToBytes())
-	err = logger.LogSuccess(start, nil, packet.ToBytes(), peer)
+	err = s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if err != nil {
 		glog.Errorf("Failed to log request: %s", err)
 	}

@@ -45,9 +45,10 @@ type Config struct {
 	RCRatio              uint32
 	Overrides            map[string]Override
 	Extras               interface{}
-	CacheSize           int
-	CacheRate           int
-	Rate                int
+	CacheSize            int
+	CacheRate            int
+	Rate                 int
+	ReplyAddr            *net.UDPAddr
 }
 
 // Override represents the dhcp server or the group of dhcp servers (tier) we
@@ -204,9 +205,10 @@ type configSpec struct {
 	FreeConnTimeout      int             `json:"free_conn_timeout"`
 	RCRatio              uint32          `json:"rc_ratio"`
 	Extras               json.RawMessage `json:"extras"`
-	CacheSize           int             `json:"throttle_cache_size"`
-	CacheRate           int             `json:"throttle_cache_rate"`
-	Rate                int             `json:"throttle_rate"`
+	CacheSize            int             `json:"throttle_cache_size"`
+	CacheRate            int             `json:"throttle_cache_rate"`
+	Rate                 int             `json:"throttle_rate"`
+	ReplyAddr            string          `json:"reply_addr"`
 }
 
 type combinedconfigSpec struct {
@@ -320,9 +322,10 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 		RCRatio:         spec.RCRatio,
 		Overrides:       overrides,
 		Extras:          extras,
-		CacheSize:      spec.CacheSize,
-		CacheRate:      spec.CacheRate,
-		Rate:           spec.Rate,
+		CacheSize:       spec.CacheSize,
+		CacheRate:       spec.CacheRate,
+		Rate:            spec.Rate,
+		ReplyAddr:       &net.UDPAddr{IP: net.ParseIP(spec.ReplyAddr)},
 	}, nil
 }
 
