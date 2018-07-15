@@ -97,10 +97,11 @@ func Mac(packet dhcpv6.DHCPv6) ([]byte, error) {
 	if !packet.IsRelay() {
 		return nil, fmt.Errorf("It is not possible to get the inner most relay")
 	}
-	ip, err := packet.(*dhcpv6.DHCPv6Relay).GetInnerPeerAddr()
+	inner, err := dhcpv6.DecapsulateRelayIndex(packet, -1)
 	if err != nil {
 		return nil, err
 	}
+	ip := inner.(*dhcpv6.DHCPv6Relay).PeerAddr()
 	_, mac, err := eui64.ParseIP(ip)
 	if err != nil {
 		return nil, err
