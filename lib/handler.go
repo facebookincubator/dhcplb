@@ -235,7 +235,7 @@ func (s *serverImpl) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	if s.server {
-		// FIXME use s.config.Handler.ServeDHCPv4(packet)
+		s.handleV4Server(start, packet, peer)
 		return
 	}
 
@@ -269,6 +269,29 @@ func (s *serverImpl) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	sendToServer(s.logger, start, server, packet.ToBytes(), peer, s.throttle)
 }
 
+func (s *serverImpl) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *net.UDPAddr) {
+	reply, err := s.config.Handler.ServeDHCPv4(packet)
+	logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
+	if logErr != nil {
+		glog.Errorf("Failed to log incoming packet: %s", logErr)
+	}
+	if err != nil {
+		glog.Errorf("Error creating reply %s", err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrServe, err)
+		return
+	}
+	addr := &net.UDPAddr{
+		IP:   packet.GatewayIPAddr(),
+		Port: dhcpv4.ServerPort,
+	}
+	s.conn.WriteTo(reply.ToBytes(), addr)
+	err = s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
+	if err != nil {
+		glog.Errorf("Failed to log reply: %s", err)
+	}
+	return
+}
+
 func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	// runs in a separate go routine
 	start := time.Now()
@@ -280,33 +303,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	if s.server {
-		reply, err := s.config.Handler.ServeDHCPv6(packet)
-		logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
-		if logErr != nil {
-			glog.Errorf("Failed to log incoming packet: %s", logErr)
-		}
-		if err != nil {
-			glog.Errorf("Error creating reply %s", err)
-			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrServe, err)
-			return
-		}
-		addr := &net.UDPAddr{
-			IP:   peer.IP,
-			Port: dhcpv6.DefaultServerPort,
-			Zone: "",
-		}
-		conn, err := net.DialUDP("udp", nil, addr)
-		if err != nil {
-			glog.Errorf("Error creating udp connection %s", err)
-			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrConnect, err)
-			return
-		}
-		conn.Write(reply.ToBytes())
-		err = s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
-		if err != nil {
-			glog.Errorf("Failed to log reply: %s", err)
-		}
-		conn.Close()
+		s.handleV6Server(start, packet, peer)
 		return
 	}
 
@@ -389,6 +386,29 @@ func (s *serverImpl) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, pe
 		glog.Errorf("Failed to log request: %s", err)
 	}
 	conn.Close()
+	return
+}
+
+func (s *serverImpl) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
+	reply, err := s.config.Handler.ServeDHCPv6(packet)
+	logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
+	if logErr != nil {
+		glog.Errorf("Failed to log incoming packet: %s", logErr)
+	}
+	if err != nil {
+		glog.Errorf("Error creating reply %s", err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrServe, err)
+		return
+	}
+	addr := &net.UDPAddr{
+		IP:   peer.IP,
+		Port: dhcpv6.DefaultServerPort,
+	}
+	s.conn.WriteTo(reply.ToBytes(), addr)
+	err = s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
+	if err != nil {
+		glog.Errorf("Failed to log reply: %s", err)
+	}
 	return
 }
 
