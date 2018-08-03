@@ -307,7 +307,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 		return
 	}
 
-	if packet.Type() == dhcpv6.RELAY_REPL {
+	if packet.Type() == dhcpv6.MessageTypeRelayReply {
 		s.handleV6RelayRepl(start, packet, peer)
 		return
 	}
@@ -326,7 +326,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	message.XID = msg.(*dhcpv6.DHCPv6Message).TransactionID()
 	message.Peer = peer
 
-	optclientid := msg.GetOneOption(dhcpv6.OPTION_CLIENTID)
+	optclientid := msg.GetOneOption(dhcpv6.OptionClientID)
 	if optclientid == nil {
 		errMsg := errors.New("Failed to extract Client ID")
 		glog.Errorf("%v", errMsg)
@@ -354,7 +354,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 		return
 	}
 
-	relayMsg, err := dhcpv6.EncapsulateRelay(packet, dhcpv6.RELAY_FORW, net.IPv6zero, peer.IP)
+	relayMsg, err := dhcpv6.EncapsulateRelay(packet, dhcpv6.MessageTypeRelayForward, net.IPv6zero, peer.IP)
 	sendToServer(s.logger, start, server, relayMsg.ToBytes(), peer, s.throttle)
 }
 

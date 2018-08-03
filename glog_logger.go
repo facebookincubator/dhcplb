@@ -74,7 +74,7 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 			}
 			xid := msg.(*dhcpv6.DHCPv6Message).TransactionID()
 			sample["xid"] = fmt.Sprintf("%#06x", xid)
-			optclientid := msg.GetOneOption(dhcpv6.OPTION_CLIENTID)
+			optclientid := msg.GetOneOption(dhcpv6.OptionClientID)
 			if optclientid != nil {
 				duid := optclientid.(*dhcpv6.OptClientId).Cid
 				sample["duid"] = dhcplb.FormatID(duid.ToBytes())
