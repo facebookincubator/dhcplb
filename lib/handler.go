@@ -36,7 +36,6 @@ const (
 	ErrParse    = "E_PARSE"
 	ErrNoServer = "E_NO_SERVER"
 	ErrConnRate = "E_CONN_RATE"
-	ErrServe    = "E_SERVE"
 )
 
 func (s *serverImpl) handleConnection() {
@@ -277,7 +276,7 @@ func (s *serverImpl) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer
 	}
 	if err != nil {
 		glog.Errorf("Error creating reply %s", err)
-		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrServe, err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, fmt.Sprintf("%T", err), err)
 		return
 	}
 	addr := &net.UDPAddr{
@@ -397,7 +396,7 @@ func (s *serverImpl) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer 
 	}
 	if err != nil {
 		glog.Errorf("Error creating reply %s", err)
-		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrServe, err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, fmt.Sprintf("%T", err), err)
 		return
 	}
 	addr := &net.UDPAddr{
