@@ -12,13 +12,14 @@ package dhcplb
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
-	"github.com/golang/glog"
 	"io/ioutil"
 	"net"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/golang/glog"
 )
 
 // ConfigProvider is an interface which provides methods to fetch the
@@ -255,7 +256,10 @@ func (c *configSpec) algorithm(provider ConfigProvider) (DHCPBalancingAlgorithm,
 		glog.Fatalf("Provided load balancing implementation error: %s", err)
 	}
 	if providedAlgo != nil {
-		// TODO: check that the name is not used, if not then fatal.
+		if _, exists := algorithms[providedAlgo.Name()]; exists {
+			glog.Fatalf("Algorithm name %s exists already, pick another name.", providedAlgo.Name())
+
+		}
 		algorithms[providedAlgo.Name()] = providedAlgo
 	}
 	lb, ok := algorithms[c.AlgorithmName]
