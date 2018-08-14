@@ -344,7 +344,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 		}
 	}
 	message.Mac = mac
-	message.NetBoot = dhcpv6.IsNetboot(msg)
+	message.NetBoot = msg.(*dhcpv6.DHCPv6Message).IsNetboot()
 
 	server, err := selectDestinationServer(s.config, &message)
 	if err != nil {
