@@ -46,24 +46,24 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 
 	if msg.Packet != nil {
 		if msg.Version == 4 {
-			packet, _ := dhcpv4.FromBytes(msg.Packet)
-			for _, opt := range packet.Options() {
-				if opt.Code() == dhcpv4.OptionDHCPMessageType {
-					sample["type"] = opt.String()
-					sample["xid"] = fmt.Sprintf("%#06x", packet.TransactionID())
-					sample["giaddr"] = packet.GatewayIPAddr().String()
-					break
-				}
+			packet, err := dhcpv4.FromBytes(msg.Packet)
+			if err != nil {
+				glog.Errorf("Error decoding DHCPv4 packet: %s", err)
+				return err
 			}
+			if messageType := packet.MessageType(); messageType != nil {
+				sample["type"] = messageType.String()
+			}
+			sample["xid"] = fmt.Sprintf("%#06x", packet.TransactionID())
+			sample["giaddr"] = packet.GatewayIPAddr().String()
 			sample["client_mac"] = packet.ClientHwAddrToString()
 		} else if msg.Version == 6 {
 			packet, err := dhcpv6.FromBytes(msg.Packet)
 			if err != nil {
-				glog.Errorf("Error encoding DHCPv6 packet: %s", err)
+				glog.Errorf("Error decoding DHCPv6 packet: %s", err)
 				return err
 			}
-			pt := dhcpv6.MessageTypeToString(packet.Type())
-			sample["type"] = pt
+			sample["type"] = packet.Type().String()
 			msg := packet
 			if msg.IsRelay() {
 				msg, err = msg.(*dhcpv6.DHCPv6Relay).GetInnerMessage()
