@@ -12,10 +12,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/facebookincubator/dhcplb/lib"
-	"github.com/golang/glog"
 	"net/http"
 	_ "net/http/pprof"
+
+	"github.com/golang/glog"
 )
 
 // Program parameters

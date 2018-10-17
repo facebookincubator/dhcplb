@@ -192,3 +192,7 @@ Internship project members:
 Other contributors:
 
 * Emre Cantimur, Production Engineer, Facebook, Throttling support
+
+# License
+
+BSD License. See the LICENSE file.

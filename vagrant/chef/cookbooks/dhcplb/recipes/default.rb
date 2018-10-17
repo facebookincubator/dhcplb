@@ -1,3 +1,10 @@
+# Copyright (c) 2016-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree. An additional grant
+# of patent rights can be found in the PATENTS file in the same directory.
+
 node.default['go']['version'] = '1.6'
 node.default['go']['packages'] = ['github.com/facebookincubator/dhcplb']
 
@@ -24,4 +31,3 @@ end
 poise_service 'dhcplb' do
   command '/opt/go/bin/dhcplb -version 4 -config /home/vagrant/dhcplb.config.json'
 end
-
