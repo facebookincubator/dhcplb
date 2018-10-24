@@ -118,9 +118,8 @@ func TestParseV4VendorClass(t *testing.T) {
 			})
 
 			if tc.hostname != "" {
-				packet.AddOption(&dhcpv4.OptionGeneric{
-					OptionCode: dhcpv4.OptionHostName,
-					Data:       []byte(tc.hostname),
+				packet.AddOption(&dhcpv4.OptHostName{
+					HostName: tc.hostname,
 				})
 			}
 

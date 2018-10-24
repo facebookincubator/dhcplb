@@ -479,8 +479,7 @@ func parseV4VendorClass(vd *VendorData, packet *dhcpv4.DHCPv4) error {
 		if sepIdx == -1 {
 			// No separator was found. Attempt serial number from the hostname
 			if opt := packet.GetOneOption(dhcpv4.OptionHostName); opt != nil {
-				data := opt.(*dhcpv4.OptionGeneric).Data
-				vd.Serial = string(data)
+				vd.Serial = opt.(*dhcpv4.OptHostName).HostName
 			}
 		} else {
 			vd.Serial = vc[sepIdx+1:]
