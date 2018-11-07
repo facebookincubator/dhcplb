@@ -30,7 +30,7 @@ type ConfigProvider interface {
 		sourcerType, args string, version int) (DHCPServerSourcer, error)
 	ParseExtras(extras json.RawMessage) (interface{}, error)
 	NewDHCPBalancingAlgorithm(version int) (DHCPBalancingAlgorithm, error)
-	NewHandler(interface{}) (Handler, error)
+	NewHandler(extras interface{}, version int) (Handler, error)
 }
 
 // Config represents the server configuration.
@@ -308,7 +308,7 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 	if err != nil {
 		return nil, err
 	}
-	handler, err := provider.NewHandler(extras)
+	handler, err := provider.NewHandler(extras, spec.Version)
 	if err != nil {
 		return nil, err
 	}

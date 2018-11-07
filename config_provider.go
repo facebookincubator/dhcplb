@@ -55,6 +55,6 @@ func (h DefaultConfigProvider) NewDHCPBalancingAlgorithm(version int) (dhcplb.DH
 // NewHandler takes an interface with extra configurations and returns a
 // Handler used for serving DHCP requests. It is only needed when using dhcplb
 // in server mode.
-func (h DefaultConfigProvider) NewHandler(interface{}) (dhcplb.Handler, error) {
+func (h DefaultConfigProvider) NewHandler(extras interface{}, version int) (dhcplb.Handler, error) {
 	return nil, nil
 }
