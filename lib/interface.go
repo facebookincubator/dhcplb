@@ -24,15 +24,6 @@ type DHCPMessage struct {
 	ClientID   []byte
 	Mac        []byte
 	NetBoot    bool
-	VendorData VendorData
-}
-
-// VendorData is optional data a particular vendor may or may not include
-// in the Vendor Class options.  All values are optional and will be zero
-// values if not found.
-type VendorData struct {
-	VendorName string
-	Model      string
 	Serial     string
 }
 
