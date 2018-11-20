@@ -10,7 +10,6 @@
 package dhcplb
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net"
@@ -21,7 +20,6 @@ import (
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	ztpv4 "github.com/insomniacslk/dhcp/dhcpv4/ztp"
 	"github.com/insomniacslk/dhcp/dhcpv6"
-	"github.com/mdlayher/eui64"
 )
 
 // List of possible errors.
@@ -70,43 +68,6 @@ func (s *serverImpl) handleConnection() {
 	}()
 }
 
-// FormatID takes a list of bytes and formats them for printing.
-// E.g. []byte{0x12, 0x34, 0x56, 0x78, 0x9a} will be printed as "12:34:56:78:9a"
-func FormatID(buf []byte) string {
-	if buf == nil || len(buf) == 0 {
-		return ""
-	}
-	str := make([]byte, len(buf)*3-1)
-	for i := 0; i < len(buf); i++ {
-		strIndex := i * 3
-		hex.Encode(str[strIndex:strIndex+2], []byte{buf[i]})
-		if i < len(buf)-1 {
-			str[strIndex+2] = ':'
-		}
-	}
-	return string(str)
-}
-
-// Mac looks into the inner most PeerAddr field in the RelayInfo header.
-// This contains the EUI-64 address of the client making the request, populated
-// by the dhcp relay, it is possible to extract the mac address from that IP.
-// If a mac address cannot be found an error will be returned.
-func Mac(packet dhcpv6.DHCPv6) ([]byte, error) {
-	if !packet.IsRelay() {
-		return nil, fmt.Errorf("It is not possible to get the inner most relay")
-	}
-	inner, err := dhcpv6.DecapsulateRelayIndex(packet, -1)
-	if err != nil {
-		return nil, err
-	}
-	ip := inner.(*dhcpv6.DHCPv6Relay).PeerAddr()
-	_, mac, err := eui64.ParseIP(ip)
-	if err != nil {
-		return nil, err
-	}
-	return mac, nil
-}
-
 func selectDestinationServer(config *Config, message *DHCPMessage) (*DHCPServer, error) {
 	server, err := handleOverride(config, message)
 	if err != nil {
@@ -120,7 +81,7 @@ func selectDestinationServer(config *Config, message *DHCPMessage) (*DHCPServer,
 }
 
 func handleOverride(config *Config, message *DHCPMessage) (*DHCPServer, error) {
-	if override, ok := config.Overrides[FormatID(message.Mac)]; ok {
+	if override, ok := config.Overrides[message.Mac.String()]; ok {
 		// Checking if override is expired. If so, ignore it. Expiration field should
 		// be a timestamp in the following format "2006/01/02 15:04 -0700".
 		// For example, a timestamp in UTC would look as follows: "2017/05/06 14:00 +0000".
@@ -129,18 +90,18 @@ func handleOverride(config *Config, message *DHCPMessage) (*DHCPServer, error) {
 		if override.Expiration != "" {
 			expiration, err = time.Parse("2006/01/02 15:04 -0700", override.Expiration)
 			if err != nil {
-				glog.Errorf("Could not parse override expiration for MAC %s: %s", FormatID(message.Mac), err.Error())
+				glog.Errorf("Could not parse override expiration for MAC %s: %s", message.Mac.String(), err.Error())
 				return nil, nil
 			}
 			if time.Now().After(expiration) {
-				glog.Errorf("Ovverride rule for MAC %s expired on %s, ignoring", FormatID(message.Mac), expiration.Local())
+				glog.Errorf("Override rule for MAC %s expired on %s, ignoring", message.Mac.String(), expiration.Local())
 				return nil, nil
 			}
 		}
 		if override.Expiration == "" {
-			glog.Infof("Found override rule for %s without expiration", FormatID(message.Mac))
+			glog.Infof("Found override rule for %s without expiration", message.Mac.String())
 		} else {
-			glog.Infof("Found override rule for %s, it will expire on %s", FormatID(message.Mac), expiration.Local())
+			glog.Infof("Found override rule for %s, it will expire on %s", message.Mac.String(), expiration.Local())
 		}
 
 		var server *DHCPServer
@@ -336,14 +297,11 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 	duid := optclientid.(*dhcpv6.OptClientId).Cid
 	message.ClientID = duid.ToBytes()
-	mac := duid.LinkLayerAddr
-	if mac == nil {
-		mac, err = Mac(packet)
-		if err != nil {
-			glog.Errorf("Failed to extract MAC, drop due to %s", err)
-			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
-			return
-		}
+	mac, err := dhcpv6.ExtractMAC(packet)
+	if err != nil {
+		glog.Errorf("Failed to extract MAC, drop due to %s", err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+		return
 	}
 	message.Mac = mac
 	message.NetBoot = msg.(*dhcpv6.DHCPv6Message).IsNetboot()

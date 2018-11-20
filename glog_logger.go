@@ -11,6 +11,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 
@@ -74,22 +75,15 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 			}
 			xid := msg.(*dhcpv6.DHCPv6Message).TransactionID()
 			sample["xid"] = fmt.Sprintf("%#06x", xid)
-			optclientid := msg.GetOneOption(dhcpv6.OptionClientID)
-			if optclientid != nil {
-				duid := optclientid.(*dhcpv6.OptClientId).Cid
-				sample["duid"] = dhcplb.FormatID(duid.ToBytes())
-				mac := duid.LinkLayerAddr
-				if mac == nil {
-					mac, err = dhcplb.Mac(packet)
-					if err != nil {
-						glog.Errorf("error getting mac: %s", err)
-					}
-				}
-				sample["client_mac"] = dhcplb.FormatID(mac)
-				duidtypename, ok := dhcpv6.DuidTypeToString[duid.Type]
-				if ok {
-					sample["duid_type"] = duidtypename
-				}
+			if cid := msg.GetOneOption(dhcpv6.OptionClientID); cid != nil {
+				duid := cid.(*dhcpv6.OptClientId).Cid
+				sample["duid"] = net.HardwareAddr(duid.ToBytes()).String()
+				sample["duid_type"] = duid.Type.String()
+			}
+			if mac, err := dhcpv6.ExtractMAC(packet); err != nil {
+				glog.Errorf("error getting mac: %s", err)
+			} else {
+				sample["client_mac"] = mac.String()
 			}
 			if packet.IsRelay() {
 				relay := packet.(*dhcpv6.DHCPv6Relay)

@@ -19,12 +19,12 @@ import (
 
 // DHCPMessage represents coordinates of a dhcp message.
 type DHCPMessage struct {
-	XID        uint32
-	Peer       *net.UDPAddr
-	ClientID   []byte
-	Mac        []byte
-	NetBoot    bool
-	Serial     string
+	XID      uint32
+	Peer     *net.UDPAddr
+	ClientID []byte
+	Mac      net.HardwareAddr
+	NetBoot  bool
+	Serial   string
 }
 
 type id string
