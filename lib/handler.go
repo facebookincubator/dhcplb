@@ -18,7 +18,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/insomniacslk/dhcp/dhcpv4"
-	ztpv4 "github.com/insomniacslk/dhcp/dhcpv4/ztp"
+	"github.com/insomniacslk/dhcp/dhcpv4/ztpv4"
 	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
@@ -205,8 +205,8 @@ func (s *serverImpl) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	message.ClientID = clientHwAddr[:hwAddrLen]
 	message.Mac = clientHwAddr[:hwAddrLen]
 	if vd, err := ztpv4.ParseVendorData(packet); err != nil {
-		glog.Errorf("error parsing vendor data: %s", err)
-	} else if vd != nil {
+		glog.V(2).Infof("error parsing vendor data: %s", err)
+	} else {
 		message.Serial = vd.Serial
 	}
 
