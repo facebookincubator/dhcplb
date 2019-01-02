@@ -20,6 +20,7 @@ import (
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/insomniacslk/dhcp/dhcpv4/ztpv4"
 	"github.com/insomniacslk/dhcp/dhcpv6"
+	"github.com/insomniacslk/dhcp/dhcpv6/ztpv6"
 )
 
 // List of possible errors.
@@ -305,6 +306,11 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 	message.Mac = mac
 	message.NetBoot = msg.(*dhcpv6.DHCPv6Message).IsNetboot()
+	if vendorData, err := ztpv6.ParseVendorData(packet); err != nil {
+		glog.V(2).Infof("Failed to extract vendor data: %s", err)
+	} else {
+		message.Serial = vendorData.Serial
+	}
 
 	server, err := selectDestinationServer(s.config, &message)
 	if err != nil {
