@@ -24,6 +24,7 @@ var (
 	configPath    = flag.String("config", "", "Path to JSON config file")
 	overridesPath = flag.String("overrides", "", "Path to JSON overrides file")
 	pprofPort     = flag.Int("pprof", 0, "Port to run pprof HTTP server on")
+	serverMode    = flag.Bool("server", false, "Run in server mode. The default is relay mode.")
 )
 
 func main() {
@@ -66,7 +67,7 @@ func main() {
 	// channels, however, here we are only listening to it from one goroutine
 	configChan := configBcast.NewReceiver()
 
-	server, err := dhcplb.NewServer(config, false, logger)
+	server, err := dhcplb.NewServer(config, *serverMode, logger)
 	if err != nil {
 		glog.Fatal(err)
 		return

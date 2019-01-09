@@ -109,7 +109,8 @@ Extending DHCPLB
 
 It's possible to extend `dhcplb` to modify the way it fetches the list of
 DHCP servers, or have a different logging implementation, or add different
-balancing algorithms.
+balancing algorithms, or make it behave as a server, replying to requests
+directly.
 At the moment this is a bit complex but we will work on ways to make it easier.
 
 ### Adding a new balancing algorithm.
@@ -147,6 +148,7 @@ type ConfigProvider interface {
 	NewHostSourcer(sourcerType, args string, version int) (DHCPServerSourcer, error)
 	ParseExtras(extras json.RawMessage) (interface{}, error)
   NewDHCPBalancingAlgorithm(version int) (DHCPBalancingAlgorithm, error)
+  NewHandler(extras interface{}, version int) (Handler, error)
 }
 ```
 
@@ -183,6 +185,28 @@ Then implement your own `ConfigProvider` interface and make it return a
 `DHCPServerSourcer`. Then in the main you can replace `NewDefaultConfigProvider`
 with your own `ConfigProvider` implementation.
 
+### Write your own server handler
+
+If you want to make `dhcplb` responsible for serving dhcp requests you can implement
+the `Handler` interface. The methods of the interface take an incoming packet and
+return the crafted response the server is going to reply with.
+
+```go
+type Handler interface {
+  ServeDHCPv4(packet *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, error)
+  ServeDHCPv6(packet dhcpv6.DHCPv6) (dhcpv6.DHCPv6, error)
+}
+```
+
+Then implement your own `ConfigProvider` interface and make it return a `Handler`
+interface. `dhcplb` should be started in server mode using the `-server` flag.
+
+When creating a `Handler`, the `Extra` configuration options are passed to it, so
+things such as DNS, NTP servers or lease time can be defined there.
+
+When `dhcplb` is used to serve requests directly, the `DHCPServerSourcer` and
+`DHCPBalancingAlgorithm` interfaces are not used.
+
 Usage
 -----
 ```
@@ -193,7 +217,7 @@ Usage of ./dhcplb:
   -config string
       Path to JSON config file
   -log_backtrace_at value
-      when logging hits line file:N, emit a stack trace (default :0)
+      when logging hits line file:N, emit a stack trace
   -log_dir string
       If non-empty, write log files in this directory
   -logtostderr
@@ -202,6 +226,8 @@ Usage of ./dhcplb:
       Path to JSON overrides file
   -pprof int
       Port to run pprof HTTP server on
+  -server
+      Run in server mode. The default is relay mode.
   -stderrthreshold value
       logs at or above this threshold go to stderr
   -v value
