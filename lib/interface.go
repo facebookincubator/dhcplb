@@ -17,7 +17,7 @@ import (
 
 // DHCPMessage represents coordinates of a dhcp message.
 type DHCPMessage struct {
-	XID      uint32
+	XID      fmt.Stringer
 	Peer     *net.UDPAddr
 	ClientID []byte
 	Mac      net.HardwareAddr
@@ -28,7 +28,7 @@ type DHCPMessage struct {
 type id string
 
 func (m *DHCPMessage) id() id {
-	return id(fmt.Sprintf("%s%d%x", m.Peer.IP, m.XID, m.ClientID))
+	return id(fmt.Sprintf("%s%s%x", m.Peer.IP, m.XID, m.ClientID))
 }
 
 // DHCPBalancingAlgorithm defines an interface for load balancing algorithms.

@@ -50,12 +50,10 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 				glog.Errorf("Error decoding DHCPv4 packet: %s", err)
 				return err
 			}
-			if messageType := packet.MessageType(); messageType != nil {
-				sample["type"] = messageType.String()
-			}
-			sample["xid"] = fmt.Sprintf("%#06x", packet.TransactionID())
-			sample["giaddr"] = packet.GatewayIPAddr().String()
-			sample["client_mac"] = packet.ClientHwAddrToString()
+			sample["type"] = packet.MessageType().String()
+			sample["xid"] = packet.TransactionID.String()
+			sample["giaddr"] = packet.GatewayIPAddr.String()
+			sample["client_mac"] = packet.ClientHWAddr.String()
 		} else if msg.Version == 6 {
 			packet, err := dhcpv6.FromBytes(msg.Packet)
 			if err != nil {

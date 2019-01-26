@@ -197,28 +197,23 @@ func (s *serverImpl) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 		return
 	}
 
-	message.XID = packet.TransactionID()
+	message.XID = packet.TransactionID
 	message.Peer = peer
-	clientHwAddr := packet.ClientHwAddr()
-	hwAddrLen := packet.HwAddrLen()
-	message.ClientID = clientHwAddr[:hwAddrLen]
-	message.Mac = clientHwAddr[:hwAddrLen]
+	message.ClientID = packet.ClientHWAddr
+	message.Mac = packet.ClientHWAddr
 	if vd, err := ztpv4.ParseVendorData(packet); err != nil {
 		glog.V(2).Infof("error parsing vendor data: %s", err)
 	} else {
 		message.Serial = vd.Serial
 	}
 
-	for _, o := range packet.Options() {
-		if o.Code() == dhcpv4.OptionVendorSpecificInformation ||
-			o.Code() == dhcpv4.OptionTFTPServerName ||
-			o.Code() == dhcpv4.OptionBootfileName {
-			message.NetBoot = true
-			break
-		}
+	if packet.Options.Has(dhcpv4.OptionVendorSpecificInformation) ||
+		packet.Options.Has(dhcpv4.OptionTFTPServerName) ||
+		packet.Options.Has(dhcpv4.OptionBootfileName) {
+		message.NetBoot = true
 	}
 
-	packet.SetHopCount(packet.HopCount() + 1)
+	packet.HopCount++
 
 	server, err := selectDestinationServer(s.config, &message)
 	if err != nil {
@@ -242,7 +237,7 @@ func (s *serverImpl) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer
 		return
 	}
 	addr := &net.UDPAddr{
-		IP:   packet.GatewayIPAddr(),
+		IP:   packet.GatewayIPAddr,
 		Port: dhcpv4.ServerPort,
 	}
 	s.conn.WriteTo(reply.ToBytes(), addr)
@@ -251,6 +246,13 @@ func (s *serverImpl) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer
 		glog.Errorf("Failed to log reply: %s", err)
 	}
 	return
+}
+
+// temporary type until v6 changes can be merged.
+type transactionID uint32
+
+func (t transactionID) String() string {
+	return fmt.Sprintf("%d", t)
 }
 
 func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
@@ -284,7 +286,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 			return
 		}
 	}
-	message.XID = msg.(*dhcpv6.DHCPv6Message).TransactionID()
+	message.XID = transactionID(msg.(*dhcpv6.DHCPv6Message).TransactionID())
 	message.Peer = peer
 
 	optclientid := msg.GetOneOption(dhcpv6.OptionClientID)
