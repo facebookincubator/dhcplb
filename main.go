@@ -13,9 +13,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/golang/glog"
-
 	dhcplb "github.com/facebookincubator/dhcplb/lib"
+	"github.com/golang/glog"
 )
 
 // Program parameters

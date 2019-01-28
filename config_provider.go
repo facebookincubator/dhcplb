@@ -9,6 +9,7 @@ package main
 
 import (
 	"encoding/json"
+
 	"github.com/facebookincubator/dhcplb/lib"
 )
 
