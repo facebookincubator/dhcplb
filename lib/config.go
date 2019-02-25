@@ -120,11 +120,9 @@ func ParseConfig(jsonConfig, jsonOverrides []byte, version int, provider ConfigP
 // files. It uses fsnotify library (it uses inotify in Linux), and call
 // LoadConfig when it an inotify event signals the modification of the json
 // files.
-// It returns a configBroadcaster which the a goroutine in the main will use
-// to reload the configuration when it changes.
 func WatchConfig(
 	configPath, overridesPath string, version int, provider ConfigProvider,
-) (*ConfigBroadcaster, chan error, error) {
+) (chan *Config, chan error, error) {
 	configChan := make(chan *Config)
 	errChan := make(chan error)
 
@@ -188,7 +186,7 @@ func WatchConfig(
 		}
 	}()
 
-	return NewConfigBroadcaster(configChan), errChan, nil
+	return configChan, errChan, nil
 }
 
 // configSpec holds the raw json configuration.
@@ -344,38 +342,4 @@ func parseOverrides(file []byte, version int) (map[string]Override, error) {
 		return overrides.V6, nil
 	}
 	return nil, fmt.Errorf("Unsupported version %d, must be 4|6", version)
-}
-
-// ConfigBroadcaster is a convenience struct that broadcasts its input channel
-// to a list of receivers.
-type ConfigBroadcaster struct {
-	input     <-chan *Config
-	receivers []chan<- *Config
-}
-
-// NewConfigBroadcaster returns an instance of ConfigBroadcaster
-func NewConfigBroadcaster(input <-chan *Config) *ConfigBroadcaster {
-	bcast := &ConfigBroadcaster{
-		input: input,
-	}
-	go bcast.listen()
-	return bcast
-}
-
-func (c *ConfigBroadcaster) listen() {
-	for {
-		config := <-c.input
-		for _, receiver := range c.receivers {
-			receiver <- config
-		}
-	}
-}
-
-// NewReceiver allows the caller to register to receive new Config messages
-// when the server config changes. This is typically used by a main go routine
-// to reload the server configuration.
-func (c *ConfigBroadcaster) NewReceiver() <-chan *Config {
-	channel := make(chan *Config, 1)
-	c.receivers = append(c.receivers, channel)
-	return channel
 }

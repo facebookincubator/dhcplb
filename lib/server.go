@@ -8,15 +8,16 @@
 package dhcplb
 
 import (
-	"github.com/golang/glog"
 	"net"
 	"sync"
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/golang/glog"
 )
 
 // UDP acceptor
-type serverImpl struct {
+type Server struct {
 	server        bool
 	conn          *net.UDPConn
 	logger        loggerHelper
@@ -29,23 +30,25 @@ type serverImpl struct {
 
 // returns a pointer to the current config struct, so that if it does get changed while being used,
 // it shouldn't affect the caller and this copy struct should be GC'ed when it falls out of scope
-func (s *serverImpl) getConfig() *Config {
+func (s *Server) GetConfig() *Config {
 	return s.config
 }
 
-func (s *serverImpl) ListenAndServe() error {
+// ListenAndServe starts the server
+func (s *Server) ListenAndServe() error {
 	if !s.server {
-		s.StartUpdatingServerList()
+		s.startUpdatingServerList()
 	}
 
-	glog.Infof("Started thrift server, processing DHCP requests...")
+	glog.Infof("Started server, processing DHCP requests...")
 
 	for {
 		s.handleConnection()
 	}
 }
 
-func (s *serverImpl) SetConfig(config *Config) {
+// SetConfig updates the server config
+func (s *Server) SetConfig(config *Config) {
 	glog.Infof("Updating server config")
 	// update server list because Algorithm instance was recreated
 	config.Algorithm.UpdateStableServerList(s.stableServers)
@@ -54,12 +57,13 @@ func (s *serverImpl) SetConfig(config *Config) {
 	glog.Infof("Updated server config")
 }
 
-func (s *serverImpl) HasServers() bool {
+// HasServers checks if the list of backend servers is not empty
+func (s *Server) HasServers() bool {
 	return len(s.stableServers) > 0 || len(s.rcServers) > 0
 }
 
 // NewServer initialized a Server before returning it.
-func NewServer(config *Config, serverMode bool, personalizedLogger PersonalizedLogger) (Server, error) {
+func NewServer(config *Config, serverMode bool, personalizedLogger PersonalizedLogger) (*Server, error) {
 	conn, err := net.ListenUDP("udp", config.Addr)
 	if err != nil {
 		return nil, err
@@ -71,7 +75,7 @@ func NewServer(config *Config, serverMode bool, personalizedLogger PersonalizedL
 		personalizedLogger: personalizedLogger,
 	}
 
-	server := &serverImpl{
+	server := &Server{
 		server: serverMode,
 		conn:   conn,
 		logger: loggerHelper,
@@ -81,7 +85,7 @@ func NewServer(config *Config, serverMode bool, personalizedLogger PersonalizedL
 	// pool to reuse packet buffers
 	server.bufPool = sync.Pool{
 		New: func() interface{} {
-			return make([]byte, server.getConfig().PacketBufSize)
+			return make([]byte, server.GetConfig().PacketBufSize)
 		},
 	}
 

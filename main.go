@@ -57,14 +57,11 @@ func main() {
 	}
 
 	// start watching config
-	configBcast, configErrChan, err := dhcplb.WatchConfig(
+	configChan, configErrChan, err := dhcplb.WatchConfig(
 		*configPath, *overridesPath, *version, provider)
 	if err != nil {
 		glog.Fatalf("Failed to watch config: %s", err)
 	}
-	// configBcast is a convenience type to send a config to multiple output
-	// channels, however, here we are only listening to it from one goroutine
-	configChan := configBcast.NewReceiver()
 
 	server, err := dhcplb.NewServer(config, *serverMode, logger)
 	if err != nil {

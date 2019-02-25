@@ -8,19 +8,20 @@
 package dhcplb
 
 import (
-	"github.com/golang/glog"
 	"net"
 	"time"
+
+	"github.com/golang/glog"
 )
 
-func (s *serverImpl) StartUpdatingServerList() {
+func (s *Server) startUpdatingServerList() {
 	glog.Infof("Starting to update server list...")
 	go s.updateServersContinuous()
 }
 
-func (s *serverImpl) updateServersContinuous() {
+func (s *Server) updateServersContinuous() {
 	for {
-		config := s.getConfig()
+		config := s.GetConfig()
 		stable, err := config.HostSourcer.GetStableServers()
 		if err != nil {
 			glog.Error(err)
@@ -54,8 +55,8 @@ func (s *serverImpl) updateServersContinuous() {
 	}
 }
 
-func (s *serverImpl) handleUpdatedList(old, new []*DHCPServer) {
-	config := s.getConfig()
+func (s *Server) handleUpdatedList(old, new []*DHCPServer) {
+	config := s.GetConfig()
 	added, removed := diffServersList(old, new)
 	if len(added) > 0 || len(removed) > 0 {
 		glog.Info("Server list updated")

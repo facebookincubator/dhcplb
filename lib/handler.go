@@ -34,7 +34,7 @@ const (
 	ErrConnRate = "E_CONN_RATE"
 )
 
-func (s *serverImpl) handleConnection() {
+func (s *Server) handleConnection() {
 	buffer := s.bufPool.Get().([]byte)
 	bytesRead, peer, err := s.conn.ReadFromUDP(buffer)
 	if err != nil || bytesRead == 0 {
@@ -181,7 +181,7 @@ func sendToServer(logger loggerHelper, start time.Time, server *DHCPServer, pack
 	return nil
 }
 
-func (s *serverImpl) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
+func (s *Server) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	// runs in a separate go routine
 	start := time.Now()
 	var message DHCPMessage
@@ -219,7 +219,7 @@ func (s *serverImpl) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	sendToServer(s.logger, start, server, packet.ToBytes(), peer, s.throttle)
 }
 
-func (s *serverImpl) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *net.UDPAddr) {
+func (s *Server) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *net.UDPAddr) {
 	reply, err := s.config.Handler.ServeDHCPv4(packet)
 	logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if logErr != nil {
@@ -242,7 +242,7 @@ func (s *serverImpl) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer
 	return
 }
 
-func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
+func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	// runs in a separate go routine
 	start := time.Now()
 	packet, err := dhcpv6.FromBytes(buffer)
@@ -310,7 +310,7 @@ func (s *serverImpl) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	sendToServer(s.logger, start, server, relayMsg.ToBytes(), peer, s.throttle)
 }
 
-func (s *serverImpl) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
+func (s *Server) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
 	// when we get a relay-reply, we need to unwind the message, removing the top
 	// relay-reply info and passing on the inner part of the message
 	msg, err := dhcpv6.DecapsulateRelay(packet)
@@ -341,7 +341,7 @@ func (s *serverImpl) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, pe
 	return
 }
 
-func (s *serverImpl) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
+func (s *Server) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
 	reply, err := s.config.Handler.ServeDHCPv6(packet)
 	logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if logErr != nil {

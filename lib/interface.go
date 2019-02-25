@@ -44,13 +44,6 @@ type DHCPBalancingAlgorithm interface {
 	Name() string
 }
 
-// Server is the main interface implementing the DHCP server.
-type Server interface {
-	SetConfig(config *Config)
-	ListenAndServe() error
-	HasServers() bool
-}
-
 // DHCPServerSourcer is an interface used to fetch stable, rc and servers from
 // a "tier" (group of servers).
 type DHCPServerSourcer interface {
