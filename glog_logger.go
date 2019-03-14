@@ -61,16 +61,12 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 				return err
 			}
 			sample["type"] = packet.Type().String()
-			msg := packet
-			if msg.IsRelay() {
-				msg, err = msg.(*dhcpv6.DHCPv6Relay).GetInnerMessage()
-				if err != nil {
-					glog.Errorf("Failed to get inner packet: %s", err)
-					return err
-				}
+			msg, err := packet.GetInnerMessage()
+			if err != nil {
+				glog.Errorf("Failed to get inner packet: %s", err)
+				return err
 			}
-			xid := msg.(*dhcpv6.DHCPv6Message).TransactionID()
-			sample["xid"] = fmt.Sprintf("%#06x", xid)
+			sample["xid"] = msg.TransactionID.String()
 			if cid := msg.GetOneOption(dhcpv6.OptionClientID); cid != nil {
 				duid := cid.(*dhcpv6.OptClientId).Cid
 				sample["duid"] = net.HardwareAddr(duid.ToBytes()).String()
@@ -82,9 +78,9 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 				sample["client_mac"] = mac.String()
 			}
 			if packet.IsRelay() {
-				relay := packet.(*dhcpv6.DHCPv6Relay)
-				sample["link-addr"] = relay.LinkAddr().String()
-				sample["peer-addr"] = relay.PeerAddr().String()
+				relay := packet.(*dhcpv6.RelayMessage)
+				sample["link-addr"] = relay.LinkAddr.String()
+				sample["peer-addr"] = relay.PeerAddr.String()
 			}
 		}
 	}

@@ -264,17 +264,13 @@ func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 
 	var message DHCPMessage
 
-	msg := packet
-	if msg.IsRelay() {
-		msg, err = msg.(*dhcpv6.DHCPv6Relay).GetInnerMessage()
-		if err != nil {
-			glog.Errorf("Error getting inner message: %s", err)
-			s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
-			return
-		}
+	msg, err := packet.GetInnerMessage()
+	if err != nil {
+		glog.Errorf("Error getting inner message: %s", err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+		return
 	}
-	tid := msg.(*dhcpv6.DHCPv6Message).TransactionID()
-	message.XID = tid[:]
+	message.XID = msg.TransactionID[:]
 	message.Peer = peer
 
 	optclientid := msg.GetOneOption(dhcpv6.OptionClientID)
@@ -293,7 +289,7 @@ func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 		return
 	}
 	message.Mac = mac
-	if vendorData, err := ztpv6.ParseVendorData(packet); err != nil {
+	if vendorData, err := ztpv6.ParseVendorData(msg); err != nil {
 		glog.V(2).Infof("Failed to extract vendor data: %s", err)
 	} else {
 		message.Serial = vendorData.Serial
@@ -319,7 +315,7 @@ func (s *Server) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *
 		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
 		return
 	}
-	peerAddr := packet.(*dhcpv6.DHCPv6Relay).PeerAddr()
+	peerAddr := packet.(*dhcpv6.RelayMessage).PeerAddr
 	// send the packet to the peer addr
 	addr := &net.UDPAddr{
 		IP:   peerAddr,
