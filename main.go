@@ -57,10 +57,11 @@ func main() {
 	}
 
 	// start watching config
-	configChan, configErrChan, err := dhcplb.WatchConfig(
+	configChan, err := dhcplb.WatchConfig(
 		*configPath, *overridesPath, *version, provider)
 	if err != nil {
 		glog.Fatalf("Failed to watch config: %s", err)
+		return
 	}
 
 	server, err := dhcplb.NewServer(config, *serverMode, logger)
@@ -76,9 +77,6 @@ func main() {
 			case config := <-configChan:
 				glog.Info("Config changed")
 				server.SetConfig(config)
-			case err := <-configErrChan:
-				glog.Fatalf("Failed to reload config: %s", err)
-				panic(err)
 			}
 		}
 	}()

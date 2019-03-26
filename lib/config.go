@@ -122,13 +122,12 @@ func ParseConfig(jsonConfig, jsonOverrides []byte, version int, provider ConfigP
 // files.
 func WatchConfig(
 	configPath, overridesPath string, version int, provider ConfigProvider,
-) (chan *Config, chan error, error) {
+) (chan *Config, error) {
 	configChan := make(chan *Config)
-	errChan := make(chan error)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// strings containing the real path of a config files, if they are symlinks
@@ -137,7 +136,7 @@ func WatchConfig(
 
 	err = watcher.Add(filepath.Dir(configPath))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	realConfigPath, err = filepath.EvalSymlinks(configPath)
 	if err == nil {
@@ -150,7 +149,7 @@ func WatchConfig(
 		err = watcher.Add(filepath.Dir(overridesPath))
 		if err != nil {
 			glog.Errorf("Failed to start fsnotify on overrides config file: %s", err)
-			return nil, nil, err
+			return nil, err
 		}
 		realOverridesPath, err = filepath.EvalSymlinks(overridesPath)
 		if err == nil {
@@ -175,7 +174,7 @@ func WatchConfig(
 					config, err := LoadConfig(
 						configPath, overridesPath, version, provider)
 					if err != nil {
-						errChan <- err
+						glog.Fatalf("Failed to reload config: %s", err)
 						panic(err) // fail hard
 					}
 					configChan <- config
@@ -186,7 +185,7 @@ func WatchConfig(
 		}
 	}()
 
-	return configChan, errChan, nil
+	return configChan, nil
 }
 
 // configSpec holds the raw json configuration.
