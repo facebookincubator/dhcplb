@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func RRTestEmpty(t *testing.T) {
+func TestRREmpty(t *testing.T) {
 	subject := new(roundRobin)
 	_, err := subject.SelectRatioBasedDhcpServer(&DHCPMessage{
 		ClientID: []byte{0},
@@ -21,7 +21,7 @@ func RRTestEmpty(t *testing.T) {
 	}
 }
 
-func RRTestBalance(t *testing.T) {
+func TestRRBalance(t *testing.T) {
 	subject := new(roundRobin)
 	servers := make([]*DHCPServer, 4)
 	for i := 0; i < 4; i++ {

@@ -9,10 +9,11 @@ package dhcplb
 
 import (
 	"errors"
-	"github.com/golang/glog"
 	"hash/fnv"
 	"sync"
 	"sync/atomic"
+
+	"github.com/golang/glog"
 )
 
 type roundRobin struct {
@@ -59,16 +60,17 @@ func (rr *roundRobin) SelectRatioBasedDhcpServer(message *DHCPMessage) (server *
 	hash := rr.getHash(message.ClientID)
 
 	rr.lock.Lock()
-	defer rr.lock.Unlock()
 
 	if hash%100 < rr.rcRatio {
 		rr.iterList = rr.iterRC
 		rr.iterRC++
+		rr.lock.Unlock()
 		return rr.SelectServerFromList(rr.rc, message)
 	}
 	//otherwise go stable
 	rr.iterList = rr.iterStable
 	rr.iterStable++
+	rr.lock.Unlock()
 	return rr.SelectServerFromList(rr.stable, message)
 }
 
