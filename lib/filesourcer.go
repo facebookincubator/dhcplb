@@ -9,13 +9,15 @@ package dhcplb
 
 import (
 	"bufio"
-	"github.com/fsnotify/fsnotify"
-	"github.com/golang/glog"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/golang/glog"
 )
 
 // FileSourcer holds various information about json the config files, list of
@@ -40,13 +42,13 @@ func NewFileSourcer(stablePath, rcPath string, version int) (*FileSourcer, error
 	if err != nil {
 		glog.Fatal(err)
 	}
-	err = watcher.Add(stablePath)
+	err = watcher.Add(filepath.Dir(stablePath))
 	if err != nil {
 		glog.Fatalf("Error watching stable: %s", err)
 	}
 	// RC is optional, only add to fsnotify and read if rcPath is present
 	if len(rcPath) > 0 {
-		err = watcher.Add(rcPath)
+		err = watcher.Add(filepath.Dir(rcPath))
 		if err != nil {
 			glog.Fatalf("Error watching rc: %s", err)
 		}
