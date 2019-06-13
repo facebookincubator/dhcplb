@@ -52,14 +52,6 @@ type DHCPServerSourcer interface {
 	GetServersFromTier(tier string) ([]*DHCPServer, error)
 }
 
-// Throttle is interface that implements rate limiting per key
-type Throttle interface {
-	// Returns whether the rate is below max for a key
-	OK(interface{}) (bool, error)
-	// Returns the number of items
-	len() int
-}
-
 // Handler is an interface used while serving DHCP requests.
 type Handler interface {
 	ServeDHCPv4(packet *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, error)

@@ -9,10 +9,11 @@ package dhcplb
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/golang/glog"
 	"github.com/hashicorp/golang-lru"
 	"golang.org/x/time/rate"
-	"sync"
 )
 
 // An LRU cache implementation of Throttle.
@@ -25,17 +26,20 @@ import (
 // Adding new items to the cache is also limited to control cache
 // invalidation rate.
 //
-type throttleImpl struct {
+type Throttle struct {
 	mu             sync.Mutex
 	lru            *lru.Cache
 	maxRatePerItem int
-	bucketSize     int
 	cacheLimiter   *rate.Limiter
 	cacheRate      int
 }
 
 // Returns true if the rate is below maximum for the given key
-func (c *throttleImpl) OK(key interface{}) (bool, error) {
+func (c *Throttle) OK(key interface{}) (bool, error) {
+	if c.maxRatePerItem <= 0 {
+		return true, nil
+	}
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -45,7 +49,7 @@ func (c *throttleImpl) OK(key interface{}) (bool, error) {
 	value, ok := c.lru.Get(key)
 	if !ok {
 		if c.cacheLimiter.Allow() {
-			limiter := rate.NewLimiter(rate.Limit(c.maxRatePerItem), c.bucketSize)
+			limiter := rate.NewLimiter(rate.Limit(c.maxRatePerItem), c.maxRatePerItem)
 			c.lru.Add(key, limiter)
 
 			return limiter.Allow(), nil
@@ -65,19 +69,14 @@ func (c *throttleImpl) OK(key interface{}) (bool, error) {
 	return true, nil
 }
 
-func (c *throttleImpl) len() int {
+func (c *Throttle) len() int {
 	return c.lru.Len()
 }
 
-// A dummy throttle implementation, It simply allows all events
-type dummyThtolleImp struct{}
-
-func (*dummyThtolleImp) OK(key interface{}) (bool, error) {
-	return true, nil
-}
-
-func (*dummyThtolleImp) len() int {
-	return -1
+func (c *Throttle) setRate(MaxRatePerItem int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.maxRatePerItem = MaxRatePerItem
 }
 
 // NewThrottle returns a Throttle struct
@@ -94,10 +93,9 @@ func (*dummyThtolleImp) len() int {
 //        Maximum allowed requests rate for each key in the cache. Throttling will
 //        be disabled for 0 or negative values. No cache will be created in that case.
 //
-func NewThrottle(Capacity int, CacheRate int, MaxRatePerItem int) (Throttle, error) {
+func NewThrottle(Capacity int, CacheRate int, MaxRatePerItem int) (*Throttle, error) {
 	if MaxRatePerItem <= 0 {
 		glog.Info("No throttling will be done")
-		return &dummyThtolleImp{}, nil
 	}
 
 	cache, err := lru.New(int(Capacity))
@@ -114,10 +112,9 @@ func NewThrottle(Capacity int, CacheRate int, MaxRatePerItem int) (Throttle, err
 		cacheLimiter = rate.NewLimiter(rate.Limit(CacheRate), CacheRate)
 	}
 
-	throttle := &throttleImpl{
+	throttle := &Throttle{
 		lru:            cache,
 		maxRatePerItem: MaxRatePerItem,
-		bucketSize:     MaxRatePerItem,
 		cacheLimiter:   cacheLimiter,
 		cacheRate:      CacheRate,
 	}

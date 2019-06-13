@@ -156,24 +156,24 @@ func handleTierOverride(config *Config, tier string, message *DHCPMessage) (*DHC
 	return server, nil
 }
 
-func sendToServer(logger loggerHelper, start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr, throttle Throttle) error {
+func (s *Server) sendToServer(start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr) error {
 
 	// Check for connection rate
-	ok, err := throttle.OK(server.Address.String())
+	ok, err := s.throttle.OK(server.Address.String())
 	if !ok {
 		glog.Errorf("Error writing to server %s, drop due to throttling", server.Hostname)
-		logger.LogErr(time.Now(), server, packet, peer, ErrConnRate, err)
+		s.logger.LogErr(time.Now(), server, packet, peer, ErrConnRate, err)
 		return err
 	}
 
 	err = server.sendTo(packet)
 	if err != nil {
 		glog.Errorf("Error writing to server %s, drop due to %s", server.Hostname, err)
-		logger.LogErr(start, server, packet, peer, ErrWrite, err)
+		s.logger.LogErr(start, server, packet, peer, ErrWrite, err)
 		return err
 	}
 
-	err = logger.LogSuccess(start, server, packet, peer)
+	err = s.logger.LogSuccess(start, server, packet, peer)
 	if err != nil {
 		glog.Errorf("Failed to log request: %s", err)
 	}
@@ -216,7 +216,7 @@ func (s *Server) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 		return
 	}
 
-	sendToServer(s.logger, start, server, packet.ToBytes(), peer, s.throttle)
+	s.sendToServer(start, server, packet.ToBytes(), peer)
 }
 
 func (s *Server) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *net.UDPAddr) {
@@ -303,7 +303,7 @@ func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	relayMsg, err := dhcpv6.EncapsulateRelay(packet, dhcpv6.MessageTypeRelayForward, net.IPv6zero, peer.IP)
-	sendToServer(s.logger, start, server, relayMsg.ToBytes(), peer, s.throttle)
+	s.sendToServer(start, server, relayMsg.ToBytes(), peer)
 }
 
 func (s *Server) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {

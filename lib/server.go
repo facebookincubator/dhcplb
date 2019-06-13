@@ -25,7 +25,7 @@ type Server struct {
 	stableServers []*DHCPServer
 	rcServers     []*DHCPServer
 	bufPool       sync.Pool
-	throttle      Throttle
+	throttle      *Throttle
 }
 
 // returns a pointer to the current config struct, so that if it does get changed while being used,
@@ -54,6 +54,8 @@ func (s *Server) SetConfig(config *Config) {
 	config.Algorithm.UpdateStableServerList(s.stableServers)
 	config.Algorithm.UpdateRCServerList(s.rcServers)
 	atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&s.config)), unsafe.Pointer(config))
+	// update the throttle rate
+	s.throttle.setRate(config.Rate)
 	glog.Infof("Updated server config")
 }
 
