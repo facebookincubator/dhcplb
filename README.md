@@ -158,7 +158,7 @@ To start immediately, you can run
 That will start the relay in v6 mode using the default configuration.
 
 Should you need to integrate `dhcplb` with your infrastructure please
-see [Getting Started](docs/getting-started.md).
+see [Extending DHCPLB](docs/extending-dhcplb.md).
 
 # Virtual lab for development and testing
 
