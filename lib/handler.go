@@ -113,13 +113,6 @@ func handleOverride(config *Config, message *DHCPMessage) (*DHCPServer, error) {
 			return nil, err
 		}
 		if server != nil {
-			server.connect()
-			time.AfterFunc(config.FreeConnTimeout, func() {
-				err := server.disconnect()
-				if err != nil {
-					glog.Errorf("Failed to disconnect from %s", server)
-				}
-			})
 			return server, nil
 		}
 		glog.Infof("Override didn't have host or tier, this shouldn't happen, proceeding with normal server selection")
@@ -166,7 +159,7 @@ func (s *Server) sendToServer(start time.Time, server *DHCPServer, packet []byte
 		return err
 	}
 
-	err = server.sendTo(packet)
+	_, err = s.conn.WriteTo(packet, server.udpAddr())
 	if err != nil {
 		glog.Errorf("Error writing to server %s, drop due to %s", server.Hostname, err)
 		s.logger.LogErr(start, server, packet, peer, ErrWrite, err)

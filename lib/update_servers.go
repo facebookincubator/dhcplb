@@ -8,7 +8,6 @@
 package dhcplb
 
 import (
-	"net"
 	"time"
 
 	"github.com/golang/glog"
@@ -56,26 +55,9 @@ func (s *Server) updateServersContinuous() {
 }
 
 func (s *Server) handleUpdatedList(old, new []*DHCPServer) {
-	config := s.GetConfig()
 	added, removed := diffServersList(old, new)
 	if len(added) > 0 || len(removed) > 0 {
 		glog.Info("Server list updated")
-		// open connections in newly added servers
-		makeConnections(old, new)
-		// close connections in removed servers after waiting for a timeout
-		// wait some time to be sure that there are no requests that will try
-		// to send to a server that already had its connection closed
-		time.AfterFunc(config.FreeConnTimeout, func() {
-			for _, old := range removed {
-				err := old.disconnect()
-				if err != nil {
-					glog.Errorf("Unable to close connection to %s", old)
-				}
-			}
-		})
-	} else {
-		// always makeConnections even if there was no change, so that sockets don't leak
-		makeConnections(old, new)
 	}
 }
 
@@ -128,32 +110,4 @@ func diffServersList(original, updated []*DHCPServer) (added, removed []*DHCPSer
 	}
 
 	return added, removed
-}
-
-// makeConnections takes an original list of servers, and a new one and either
-// copies connections over from the old list or opens new connections
-func makeConnections(original, updated []*DHCPServer) {
-	originalMap := make(map[serverKey]*net.UDPConn)
-	for _, s := range original {
-		key := serverKey{
-			s.Address.String(),
-			s.Port,
-		}
-		originalMap[key] = s.conn
-	}
-	// now copy connections into the new list if needed
-	for _, new := range updated {
-		key := serverKey{
-			new.Address.String(),
-			new.Port,
-		}
-		if conn, ok := originalMap[key]; ok && conn != nil {
-			new.conn = conn
-		} else {
-			err := new.connect()
-			if err != nil {
-				glog.Errorf("Unable to open socket to %s", new)
-			}
-		}
-	}
 }
