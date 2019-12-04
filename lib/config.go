@@ -40,7 +40,6 @@ type Config struct {
 	PacketBufSize        int
 	Handler              Handler
 	HostSourcer          DHCPServerSourcer
-	FreeConnTimeout      time.Duration
 	RCRatio              uint32
 	Overrides            map[string]Override
 	Extras               interface{}
@@ -198,7 +197,6 @@ type configSpec struct {
 	UpdateServerInterval int             `json:"update_server_interval"`
 	PacketBufSize        int             `json:"packet_buf_size"`
 	HostSourcer          string          `json:"host_sourcer"`
-	FreeConnTimeout      int             `json:"free_conn_timeout"`
 	RCRatio              uint32          `json:"rc_ratio"`
 	Extras               json.RawMessage `json:"extras"`
 	CacheSize            int             `json:"throttle_cache_size"`
@@ -314,17 +312,16 @@ func newConfig(spec *configSpec, overrides map[string]Override, provider ConfigP
 		Algorithm: algo,
 		ServerUpdateInterval: time.Duration(
 			spec.UpdateServerInterval) * time.Second,
-		PacketBufSize:   spec.PacketBufSize,
-		Handler:         handler,
-		HostSourcer:     sourcer,
-		FreeConnTimeout: time.Duration(spec.FreeConnTimeout) * time.Second,
-		RCRatio:         spec.RCRatio,
-		Overrides:       overrides,
-		Extras:          extras,
-		CacheSize:       spec.CacheSize,
-		CacheRate:       spec.CacheRate,
-		Rate:            spec.Rate,
-		ReplyAddr:       &net.UDPAddr{IP: net.ParseIP(spec.ReplyAddr)},
+		PacketBufSize: spec.PacketBufSize,
+		Handler:       handler,
+		HostSourcer:   sourcer,
+		RCRatio:       spec.RCRatio,
+		Overrides:     overrides,
+		Extras:        extras,
+		CacheSize:     spec.CacheSize,
+		CacheRate:     spec.CacheRate,
+		Rate:          spec.Rate,
+		ReplyAddr:     &net.UDPAddr{IP: net.ParseIP(spec.ReplyAddr)},
 	}, nil
 }
 

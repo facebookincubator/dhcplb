@@ -183,7 +183,6 @@ Create a configuration file and watch the config changes.
     "port": 547,
     "packet_buf_size": 1024,
     "update_server_interval": 30,
-    "free_conn_timeout": 30,
     "algorithm": "xid",
     "host_sourcer": "file:hosts-v6.txt",
     "rc_ratio": 0,
