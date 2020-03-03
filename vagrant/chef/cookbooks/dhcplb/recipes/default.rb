@@ -3,7 +3,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-node.default['go']['version'] = '1.6'
+node.default['go']['version'] = '1.13'
 node.default['go']['packages'] = ['github.com/facebookincubator/dhcplb']
 
 include_recipe 'golang'

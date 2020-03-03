@@ -14,7 +14,7 @@ First, install `chef-dk` from https://downloads.chef.io/chef-dk/ .
 On OSX you can use `brew`:
 
 ```
-$ brew cask install Caskroom/cask/chefdk
+$ brew cask install chef/chef/chefdk
 ```
 
 Install `vagrant-berkshelf` plugin:
