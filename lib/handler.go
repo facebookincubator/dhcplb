@@ -266,14 +266,13 @@ func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	message.XID = msg.TransactionID[:]
 	message.Peer = peer
 
-	optclientid := msg.GetOneOption(dhcpv6.OptionClientID)
-	if optclientid == nil {
-		errMsg := errors.New("Failed to extract Client ID")
+	duid := msg.Options.ClientID()
+	if duid == nil {
+		errMsg := errors.New("failed to extract Client ID")
 		glog.Errorf("%v", errMsg)
 		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, errMsg)
 		return
 	}
-	duid := optclientid.(*dhcpv6.OptClientId).Cid
 	message.ClientID = duid.ToBytes()
 	mac, err := dhcpv6.ExtractMAC(packet)
 	if err != nil {
