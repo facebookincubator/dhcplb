@@ -67,8 +67,7 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 				return err
 			}
 			sample["xid"] = msg.TransactionID.String()
-			if cid := msg.GetOneOption(dhcpv6.OptionClientID); cid != nil {
-				duid := cid.(*dhcpv6.OptClientId).Cid
+			if duid := msg.Options.ClientID(); duid != nil {
 				sample["duid"] = net.HardwareAddr(duid.ToBytes()).String()
 				sample["duid_type"] = duid.Type.String()
 			}
