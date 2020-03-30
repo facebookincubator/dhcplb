@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -86,19 +85,28 @@ func (fs *FileSourcer) GetServersFromTier(path string) ([]*DHCPServer, error) {
 
 	var servers []*DHCPServer
 	for scanner.Scan() {
-		tokens := strings.Split(scanner.Text(), ":")
-		var port int64
-		if len(tokens) == 1 {
-			port = 67
+		var (
+			hostname string
+			port     int64
+		)
+		line := scanner.Text()
+		h, p, err := net.SplitHostPort(line)
+		if err != nil {
+			hostname = line
+			if fs.version == 4 {
+				port = 67
+			} else {
+				port = 547
+			}
 		} else {
+			hostname = h
 			var errPort error
-			port, errPort = strconv.ParseInt(tokens[1], 10, 32)
+			port, errPort = strconv.ParseInt(p, 10, 32)
 			if errPort != nil {
-				glog.Errorf("Can't convert port %s to int", tokens[1])
+				glog.Errorf("Can't convert port %s to int", p)
 				continue
 			}
 		}
-		hostname := tokens[0]
 		ip := net.ParseIP(hostname)
 		if ip == nil {
 			ips, err := net.LookupHost(hostname)
