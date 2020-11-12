@@ -1,0 +1,21 @@
+name: Run tests
+
+on:
+  push:
+    # To all branches
+
+jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          stable: 'false'
+          go-version: '1.15.4'
+      - name: Convert to modules # To avoid the "outside of GOPATH" nonsense
+        run: go mod init github.com/facebookincubator/dhcplb
+      - name: Fetch Dependencies
+        run: go get -v ./...
+      - name: Run Tests
+        run: go test -v ./...
