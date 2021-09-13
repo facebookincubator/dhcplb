@@ -24,12 +24,8 @@ func (s *Server) updateServersContinuous() {
 		stable, err := config.HostSourcer.GetStableServers()
 		if err != nil {
 			glog.Error(err)
-		}
-		rc, err := config.HostSourcer.GetRCServers()
-		if err != nil {
-			glog.Error(err)
-		}
-		if err == nil {
+		} else {
+			glog.Infof("Adding %d servers to the stable servers list", len(stable))
 			if len(stable) > 0 {
 				s.handleUpdatedList(s.stableServers, stable)
 				err = config.Algorithm.UpdateStableServerList(stable)
@@ -39,6 +35,13 @@ func (s *Server) updateServersContinuous() {
 					s.stableServers = stable
 				}
 			}
+		}
+
+		rc, err := config.HostSourcer.GetRCServers()
+		if err != nil {
+			glog.Error(err)
+		} else {
+			glog.Infof("Adding %d servers to the list of RC servers", len(rc))
 			if len(rc) > 0 {
 				s.handleUpdatedList(s.rcServers, rc)
 				err = config.Algorithm.UpdateRCServerList(rc)
