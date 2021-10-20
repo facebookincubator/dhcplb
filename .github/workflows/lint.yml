@@ -16,9 +16,6 @@ jobs:
       - name: Convert to modules
         run: go mod init github.com/facebookincubator/dhcplb
         
-      - name: Fetch Dependencies
-        run: go get -v ./...
-        
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
