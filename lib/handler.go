@@ -232,7 +232,6 @@ func (s *Server) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *ne
 	if err != nil {
 		glog.Errorf("Failed to log reply: %s", err)
 	}
-	return
 }
 
 func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
@@ -294,7 +293,7 @@ func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 		return
 	}
 
-	relayMsg, err := dhcpv6.EncapsulateRelay(packet, dhcpv6.MessageTypeRelayForward, net.IPv6zero, peer.IP)
+	relayMsg, _ := dhcpv6.EncapsulateRelay(packet, dhcpv6.MessageTypeRelayForward, net.IPv6zero, peer.IP)
 	s.sendToServer(start, server, relayMsg.ToBytes(), peer)
 }
 
@@ -326,7 +325,6 @@ func (s *Server) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *
 		glog.Errorf("Failed to log request: %s", err)
 	}
 	conn.Close()
-	return
 }
 
 func (s *Server) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
@@ -349,5 +347,4 @@ func (s *Server) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net
 	if err != nil {
 		glog.Errorf("Failed to log reply: %s", err)
 	}
-	return
 }

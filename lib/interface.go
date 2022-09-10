@@ -8,7 +8,6 @@
 package dhcplb
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
@@ -22,12 +21,6 @@ type DHCPMessage struct {
 	ClientID []byte
 	Mac      net.HardwareAddr
 	Serial   string
-}
-
-type id string
-
-func (m *DHCPMessage) id() id {
-	return id(fmt.Sprintf("%s%x%x", m.Peer.IP, m.XID, m.ClientID))
 }
 
 // DHCPBalancingAlgorithm defines an interface for load balancing algorithms.
