@@ -77,7 +77,6 @@ func LoadConfig(path, overridesPath string, version int, provider ConfigProvider
 	overridesFile := []byte{}
 	// path length of 0 means we aren't using overrides
 	if len(overridesPath) != 0 {
-		err = nil
 		if overridesFile, err = ioutil.ReadFile(overridesPath); err != nil {
 			return nil, err
 		}
@@ -141,19 +140,24 @@ func WatchConfig(
 	if err == nil {
 		// configPath is a symlink, also watch the pointee
 		err = watcher.Add(realConfigPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// setup watcher on overrides file if present
 	if len(overridesPath) > 0 {
 		err = watcher.Add(filepath.Dir(overridesPath))
 		if err != nil {
-			glog.Errorf("Failed to start fsnotify on overrides config file: %s", err)
 			return nil, err
 		}
 		realOverridesPath, err = filepath.EvalSymlinks(overridesPath)
 		if err == nil {
 			// overridesPath is a symlink, also watch the pointee
 			err = watcher.Add(realOverridesPath)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -216,7 +220,7 @@ func (c *configSpec) sourcer(provider ConfigProvider) (DHCPServerSourcer, error)
 	sourcerType := sourcerInfo[0]
 	stable := sourcerInfo[1]
 	rc := ""
-	if strings.Index(sourcerInfo[1], ",") > -1 {
+	if strings.Contains(sourcerInfo[1], ",") {
 		sourcerArgs := strings.Split(sourcerInfo[1], ",")
 		stable = sourcerArgs[0]
 		rc = sourcerArgs[1]

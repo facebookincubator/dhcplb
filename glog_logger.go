@@ -87,7 +87,7 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 	// Order samples by key, store them into logline slice
 	keys := make([]string, len(sample))
 	i := 0
-	for key, _ := range sample {
+	for key := range sample {
 		keys[i] = key
 		i++
 	}

@@ -32,7 +32,6 @@ func main() {
 
 	if *configPath == "" {
 		glog.Fatal("Config file is necessary")
-		return
 	}
 
 	if *pprofPort != 0 {
@@ -53,7 +52,6 @@ func main() {
 		*configPath, *overridesPath, *version, provider)
 	if err != nil {
 		glog.Fatalf("Failed to load config: %s", err)
-		return
 	}
 
 	// start watching config
@@ -61,23 +59,18 @@ func main() {
 		*configPath, *overridesPath, *version, provider)
 	if err != nil {
 		glog.Fatalf("Failed to watch config: %s", err)
-		return
 	}
 
 	server, err := dhcplb.NewServer(config, *serverMode, logger)
 	if err != nil {
 		glog.Fatal(err)
-		return
 	}
 
 	// update server config whenever file changes
 	go func() {
-		for {
-			select {
-			case config := <-configChan:
-				glog.Info("Config changed")
-				server.SetConfig(config)
-			}
+		for config := range configChan {
+			glog.Info("Config changed")
+			server.SetConfig(config)
 		}
 	}()
 
