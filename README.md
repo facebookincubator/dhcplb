@@ -13,7 +13,7 @@ It is based on [@insomniacslk](https://github.com/insomniacslk) [dhcp library](h
 # Why did you do that?
 
 Facebook uses DHCP to provide network configuration to bare-metal machines at
-provisioning phase and to assign IPs to out-of-band interfaces.  
+provisioning phase and to assign IPs to out-of-band interfaces.
 
 `dhcplb` was created because the previous infrastructure surrounding DHCP led
 to very unbalanced load across the DHCP servers in a region when simply using
@@ -102,32 +102,13 @@ dhcp client <---> rsw relayer ---> dhcplb (relay) ---> dhcplb (server)
 
 In DHCPv6 responses by the dhcp server will traverse the load balancer.
 
-# Requirements
-
-`dhcplb` relies on the following libraries that you can get using the `go get`
-command:
-
-```
-$ go get github.com/fsnotify/fsnotify
-$ go get github.com/golang/glog
-$ go get github.com/facebookgo/ensure
-$ go get github.com/hashicorp/golang-lru
-$ go get github.com/insomniacslk/dhcp/dhcpv4
-$ go get github.com/insomniacslk/dhcp/dhcpv6
-$ go get golang.org/x/time/rate
-```
-
 # Installation
 
-To install `dhcplb` in your `$GOPATH` simply run:
+To install `dhcplb` into `$GOPATH/bin/dhcplb`, simply run:
 
 ```
-$ go get github.com/facebookincubator/dhcplb
+$ go install github.com/facebookincubator/dhcplb@latest
 ```
-
-This will fetch the source code and write it into
-`$GOPATH/src/github.com/facebookincubator/dhcplb`, compile the binary and put
-it in `$GOPATH/bin/dhcplb`.
 
 # Cloning
 
