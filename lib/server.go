@@ -9,7 +9,6 @@ package dhcplb
 
 import (
 	"net"
-	"sync"
 	"sync/atomic"
 	"unsafe"
 
@@ -24,7 +23,6 @@ type Server struct {
 	config        *Config
 	stableServers []*DHCPServer
 	rcServers     []*DHCPServer
-	bufPool       sync.Pool
 	throttle      *Throttle
 }
 
@@ -82,13 +80,6 @@ func NewServer(config *Config, serverMode bool, personalizedLogger PersonalizedL
 		conn:   conn,
 		logger: loggerHelper,
 		config: config,
-	}
-
-	// pool to reuse packet buffers
-	server.bufPool = sync.Pool{
-		New: func() interface{} {
-			return make([]byte, server.GetConfig().PacketBufSize)
-		},
 	}
 
 	glog.Infof("Setting up throttle: Cache Size: %d - Cache Rate: %d - Request Rate: %d",

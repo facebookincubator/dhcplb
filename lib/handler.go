@@ -35,10 +35,9 @@ const (
 )
 
 func (s *Server) handleConnection() {
-	buffer := s.bufPool.Get().([]byte)
+	buffer := make([]byte, s.config.PacketBufSize)
 	bytesRead, peer, err := s.conn.ReadFromUDP(buffer)
 	if err != nil || bytesRead == 0 {
-		s.bufPool.Put(buffer)
 		msg := "error reading from %s: %v"
 		glog.Errorf(msg, peer, err)
 		s.logger.LogErr(time.Now(), nil, nil, peer, ErrRead, err)
@@ -47,9 +46,6 @@ func (s *Server) handleConnection() {
 
 	go func() {
 		defer func() {
-			// always release this routine's buffer back to the pool
-			s.bufPool.Put(buffer)
-
 			if r := recover(); r != nil {
 				glog.Errorf("Panicked handling v%d packet from %s: %s", s.config.Version, peer, r)
 				glog.Errorf("Offending packet: %x", buffer[:bytesRead])
