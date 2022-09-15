@@ -32,19 +32,13 @@ type PersonalizedLogger interface {
 	Log(msg LogMessage) error
 }
 
-// LoggerHelper is an interface used to log.
-type loggerHelper interface {
-	LogErr(start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr, errName string, err error) error
-	LogSuccess(start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr) error
-}
-
-// loggerHelperImpl is the implementation of the above interface.
-type loggerHelperImpl struct {
+// loggerHelper is the implementation of the above interface.
+type loggerHelper struct {
 	personalizedLogger PersonalizedLogger
 	version            int
 }
 
-func (h *loggerHelperImpl) LogErr(start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr, errName string, err error) error {
+func (h *loggerHelper) LogErr(start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr, errName string, err error) {
 	if h.personalizedLogger != nil {
 		hostname := ""
 		isRC := false
@@ -66,13 +60,11 @@ func (h *loggerHelperImpl) LogErr(start time.Time, server *DHCPServer, packet []
 		err := h.personalizedLogger.Log(msg)
 		if err != nil {
 			glog.Errorf("Failed to log error: %s", err)
-			return err
 		}
 	}
-	return nil
 }
 
-func (h *loggerHelperImpl) LogSuccess(start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr) error {
+func (h *loggerHelper) LogSuccess(start time.Time, server *DHCPServer, packet []byte, peer *net.UDPAddr) {
 	if h.personalizedLogger != nil {
 		hostname := ""
 		isRC := false
@@ -92,8 +84,6 @@ func (h *loggerHelperImpl) LogSuccess(start time.Time, server *DHCPServer, packe
 		err := h.personalizedLogger.Log(msg)
 		if err != nil {
 			glog.Errorf("Failed to log error: %s", err)
-			return err
 		}
 	}
-	return nil
 }

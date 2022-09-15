@@ -19,7 +19,7 @@ import (
 type Server struct {
 	server        bool
 	conn          *net.UDPConn
-	logger        loggerHelper
+	logger        *loggerHelper
 	config        *Config
 	stableServers []*DHCPServer
 	rcServers     []*DHCPServer
@@ -70,7 +70,7 @@ func NewServer(config *Config, serverMode bool, personalizedLogger PersonalizedL
 	}
 
 	// setup logger
-	var loggerHelper = &loggerHelperImpl{
+	var loggerHelper = &loggerHelper{
 		version:            config.Version,
 		personalizedLogger: personalizedLogger,
 	}

@@ -162,10 +162,7 @@ func (s *Server) sendToServer(start time.Time, server *DHCPServer, packet []byte
 		return err
 	}
 
-	err = s.logger.LogSuccess(start, server, packet, peer)
-	if err != nil {
-		glog.Errorf("Failed to log request: %s", err)
-	}
+	s.logger.LogSuccess(start, server, packet, peer)
 
 	return nil
 }
@@ -210,10 +207,7 @@ func (s *Server) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 
 func (s *Server) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *net.UDPAddr) {
 	reply, err := s.config.Handler.ServeDHCPv4(packet)
-	logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
-	if logErr != nil {
-		glog.Errorf("Failed to log incoming packet: %s", logErr)
-	}
+	s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if err != nil {
 		glog.Errorf("Error creating reply %s", err)
 		s.logger.LogErr(start, nil, packet.ToBytes(), peer, fmt.Sprintf("%T", err), err)
@@ -224,10 +218,7 @@ func (s *Server) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *ne
 		Port: dhcpv4.ServerPort,
 	}
 	s.conn.WriteTo(reply.ToBytes(), addr)
-	err = s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
-	if err != nil {
-		glog.Errorf("Failed to log reply: %s", err)
-	}
+	s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
 }
 
 func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
@@ -316,19 +307,13 @@ func (s *Server) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *
 		return
 	}
 	conn.Write(msg.ToBytes())
-	err = s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
-	if err != nil {
-		glog.Errorf("Failed to log request: %s", err)
-	}
+	s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	conn.Close()
 }
 
 func (s *Server) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
 	reply, err := s.config.Handler.ServeDHCPv6(packet)
-	logErr := s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
-	if logErr != nil {
-		glog.Errorf("Failed to log incoming packet: %s", logErr)
-	}
+	s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if err != nil {
 		glog.Errorf("Error creating reply %s", err)
 		s.logger.LogErr(start, nil, packet.ToBytes(), peer, fmt.Sprintf("%T", err), err)
@@ -339,8 +324,5 @@ func (s *Server) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net
 		Port: dhcpv6.DefaultServerPort,
 	}
 	s.conn.WriteTo(reply.ToBytes(), addr)
-	err = s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
-	if err != nil {
-		glog.Errorf("Failed to log reply: %s", err)
-	}
+	s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
 }
