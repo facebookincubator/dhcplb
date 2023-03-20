@@ -69,7 +69,7 @@ func (l glogLogger) Log(msg dhcplb.LogMessage) error {
 			sample["xid"] = msg.TransactionID.String()
 			if duid := msg.Options.ClientID(); duid != nil {
 				sample["duid"] = net.HardwareAddr(duid.ToBytes()).String()
-				sample["duid_type"] = duid.Type.String()
+				sample["duid_type"] = duid.DUIDType().String()
 			}
 			if mac, err := dhcpv6.ExtractMAC(packet); err != nil {
 				glog.Errorf("error getting mac: %s", err)
