@@ -12,10 +12,6 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: 1.18
-      - name: Convert to modules # To avoid the "outside of GOPATH" nonsense
-        run: |
-          go mod init github.com/facebookincubator/dhcplb
-          go mod tidy
       - name: Fetch Dependencies
         run: go get -v ./...
       - name: Run Tests
