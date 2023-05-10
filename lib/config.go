@@ -10,8 +10,8 @@ package dhcplb
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -69,7 +69,7 @@ type Overrides struct {
 // file, an integer version and a ConfigProvider and will return a pointer to
 // a Config object.
 func LoadConfig(path, overridesPath string, version int, provider ConfigProvider) (*Config, error) {
-	file, err := ioutil.ReadFile(path)
+	file, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func LoadConfig(path, overridesPath string, version int, provider ConfigProvider
 	overridesFile := []byte{}
 	// path length of 0 means we aren't using overrides
 	if len(overridesPath) != 0 {
-		if overridesFile, err = ioutil.ReadFile(overridesPath); err != nil {
+		if overridesFile, err = os.ReadFile(overridesPath); err != nil {
 			return nil, err
 		}
 	}
