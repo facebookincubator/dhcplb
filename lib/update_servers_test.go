@@ -8,75 +8,71 @@
 package dhcplb
 
 import (
-	"github.com/facebookgo/ensure"
+	"fmt"
 	"net"
+	"reflect"
 	"testing"
 )
 
-func Test_Nil(t *testing.T) {
-	added, removed := diffServersList(nil, nil)
-	// added and removed lists should be empty
-	ensure.DeepEqual(t, added, make([]*DHCPServer, 0))
-	ensure.DeepEqual(t, removed, make([]*DHCPServer, 0))
-}
+func TestDiffServerList(t *testing.T) {
+	for i, tt := range []struct {
+		original []*DHCPServer
+		updated  []*DHCPServer
+	}{
+		{
+			original: []*DHCPServer{},
+			updated:  []*DHCPServer{},
+		},
+		{
+			original: []*DHCPServer{},
+			updated: []*DHCPServer{
 
-func UpdateServerTestEmpty(t *testing.T) {
-	added, removed := diffServersList(make([]*DHCPServer, 0), make([]*DHCPServer, 0))
-	// added and removed lists should be empty
-	ensure.DeepEqual(t, added, make([]*DHCPServer, 0))
-	ensure.DeepEqual(t, removed, make([]*DHCPServer, 0))
-}
-
-func Test_Add(t *testing.T) {
-	var original []*DHCPServer
-	updated := []*DHCPServer{
-		&DHCPServer{
-			Address: net.ParseIP("1.2.3.4"),
-			Port:    1,
+				&DHCPServer{
+					Address: net.ParseIP("1.2.3.4"),
+					Port:    1,
+				},
+				&DHCPServer{
+					Address: net.ParseIP("5.6.7.8"),
+					Port:    2,
+				},
+			},
 		},
-		&DHCPServer{
-			Address: net.ParseIP("5.6.7.8"),
-			Port:    2,
+		{
+			original: []*DHCPServer{
+				&DHCPServer{
+					Address: net.ParseIP("1.2.3.4"),
+					Port:    1,
+				},
+				&DHCPServer{
+					Address: net.ParseIP("5.6.7.8"),
+					Port:    2,
+				},
+			},
+			updated: []*DHCPServer{},
 		},
+		{
+			original: []*DHCPServer{
+				&DHCPServer{
+					Address: net.ParseIP("1.2.3.4"),
+					Port:    1,
+				},
+			},
+			updated: []*DHCPServer{
+				&DHCPServer{
+					Address: net.ParseIP("5.6.7.8"),
+					Port:    2,
+				},
+			},
+		},
+	} {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			added, removed := diffServersList(tt.original, tt.updated)
+			if !reflect.DeepEqual(added, tt.updated) {
+				t.Errorf("added %v, updated %v", added, tt.updated)
+			}
+			if !reflect.DeepEqual(removed, tt.original) {
+				t.Errorf("removed %v, original %v", removed, tt.original)
+			}
+		})
 	}
-	added, removed := diffServersList(original, updated)
-	// original list was empty, so added should just be the new list
-	ensure.DeepEqual(t, added, updated)
-	ensure.DeepEqual(t, removed, make([]*DHCPServer, 0))
-}
-
-func Test_Remove(t *testing.T) {
-	original := []*DHCPServer{
-		&DHCPServer{
-			Address: net.ParseIP("1.2.3.4"),
-			Port:    1,
-		},
-		&DHCPServer{
-			Address: net.ParseIP("5.6.7.8"),
-			Port:    2,
-		},
-	}
-	var updated []*DHCPServer
-	added, removed := diffServersList(original, updated)
-	// new list is empty, so removed should just be the original list
-	ensure.DeepEqual(t, removed, original)
-	ensure.DeepEqual(t, added, make([]*DHCPServer, 0))
-}
-
-func Test_Add_Remove(t *testing.T) {
-	original := []*DHCPServer{
-		&DHCPServer{
-			Address: net.ParseIP("1.2.3.4"),
-			Port:    1,
-		},
-	}
-	updated := []*DHCPServer{
-		&DHCPServer{
-			Address: net.ParseIP("5.6.7.8"),
-			Port:    2,
-		},
-	}
-	added, removed := diffServersList(original, updated)
-	ensure.DeepEqual(t, added, updated)
-	ensure.DeepEqual(t, removed, original)
 }
