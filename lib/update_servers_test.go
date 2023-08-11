@@ -27,11 +27,11 @@ func TestDiffServerList(t *testing.T) {
 			original: []*DHCPServer{},
 			updated: []*DHCPServer{
 
-				&DHCPServer{
+				{
 					Address: net.ParseIP("1.2.3.4"),
 					Port:    1,
 				},
-				&DHCPServer{
+				{
 					Address: net.ParseIP("5.6.7.8"),
 					Port:    2,
 				},
@@ -39,11 +39,11 @@ func TestDiffServerList(t *testing.T) {
 		},
 		{
 			original: []*DHCPServer{
-				&DHCPServer{
+				{
 					Address: net.ParseIP("1.2.3.4"),
 					Port:    1,
 				},
-				&DHCPServer{
+				{
 					Address: net.ParseIP("5.6.7.8"),
 					Port:    2,
 				},
@@ -52,13 +52,13 @@ func TestDiffServerList(t *testing.T) {
 		},
 		{
 			original: []*DHCPServer{
-				&DHCPServer{
+				{
 					Address: net.ParseIP("1.2.3.4"),
 					Port:    1,
 				},
 			},
 			updated: []*DHCPServer{
-				&DHCPServer{
+				{
 					Address: net.ParseIP("5.6.7.8"),
 					Port:    2,
 				},
