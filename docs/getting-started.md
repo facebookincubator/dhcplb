@@ -1,6 +1,6 @@
 # Getting Started
 
-Out of the box `dhcplb` supports loading DHCP server lists from text files and logging to stderr with `glog`.  
+Out of the box `dhcplb` supports loading DHCP server lists from text files and logging to stderr with `glog`.
 All configuration files supplied to `dhcplb` (config, overrides and DHCP server files) are watched for changes using [`fsnotify`](https://github.com/fsnotify/fsnotify) and hot-reloaded without restarting the server.
 Configuration is provided to the program via a JSON file
 

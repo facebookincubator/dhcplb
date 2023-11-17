@@ -53,9 +53,9 @@ This will bring up the following VMs:
   test things. It's DISCOVER/SOLICIT messages will be picked up by the
   `dhcprelay` instance
 
-You can ssh into VMs using `vagrant ssh ${vm_name}`. Destroy them with 
+You can ssh into VMs using `vagrant ssh ${vm_name}`. Destroy them with
 `vagrant destrory ${vm_name}`. If you find bugs in the `chef` cookbooks or you
-want to change something there you can test your `chef` changes using 
+want to change something there you can test your `chef` changes using
 `vagrant provision ${vm_name}` on a running VM.
 
 ## Development cycle
@@ -148,6 +148,6 @@ The main config is in `/etc/dhcp/dhcpd.conf`.
 Subnets are configured like this should you need to change them:
 
 ```
-subnet 192.168.50.0 netmask 255.255.255.0 {} 
+subnet 192.168.50.0 netmask 255.255.255.0 {}
 subnet 192.168.51.0 netmask 255.255.255.0 {range 192.168.51.220 192.168.51.230;}
 ```
