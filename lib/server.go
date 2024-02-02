@@ -8,6 +8,7 @@
 package dhcplb
 
 import (
+	"context"
 	"net"
 	"sync/atomic"
 	"unsafe"
@@ -33,7 +34,7 @@ func (s *Server) GetConfig() *Config {
 }
 
 // ListenAndServe starts the server
-func (s *Server) ListenAndServe() error {
+func (s *Server) ListenAndServe(ctx context.Context) error {
 	if !s.server {
 		s.startUpdatingServerList()
 	}
@@ -41,7 +42,7 @@ func (s *Server) ListenAndServe() error {
 	glog.Infof("Started server, processing DHCP requests...")
 
 	for {
-		s.handleConnection()
+		s.handleConnection(ctx)
 	}
 }
 

@@ -8,6 +8,7 @@
 package dhcplb
 
 import (
+	"context"
 	"net"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
@@ -47,6 +48,6 @@ type DHCPServerSourcer interface {
 
 // Handler is an interface used while serving DHCP requests.
 type Handler interface {
-	ServeDHCPv4(packet *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, error)
-	ServeDHCPv6(packet dhcpv6.DHCPv6) (dhcpv6.DHCPv6, error)
+	ServeDHCPv4(ctx context.Context, packet *dhcpv4.DHCPv4) (*dhcpv4.DHCPv4, error)
+	ServeDHCPv6(ctx context.Context, packet dhcpv6.DHCPv6) (dhcpv6.DHCPv6, error)
 }

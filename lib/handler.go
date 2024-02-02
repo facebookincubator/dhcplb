@@ -8,6 +8,7 @@
 package dhcplb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -34,7 +35,7 @@ const (
 	ErrConnRate = "E_CONN_RATE"
 )
 
-func (s *Server) handleConnection() {
+func (s *Server) handleConnection(ctx context.Context) {
 	buffer := make([]byte, s.config.PacketBufSize)
 	bytesRead, peer, err := s.conn.ReadFromUDP(buffer)
 	if err != nil || bytesRead == 0 {
@@ -56,9 +57,9 @@ func (s *Server) handleConnection() {
 		}()
 
 		if s.config.Version == 4 {
-			s.handleRawPacketV4(buffer[:bytesRead], peer)
+			s.handleRawPacketV4(ctx, buffer[:bytesRead], peer)
 		} else if s.config.Version == 6 {
-			s.handleRawPacketV6(buffer[:bytesRead], peer)
+			s.handleRawPacketV6(ctx, buffer[:bytesRead], peer)
 		}
 	}()
 }
@@ -167,7 +168,7 @@ func (s *Server) sendToServer(start time.Time, server *DHCPServer, packet []byte
 	return nil
 }
 
-func (s *Server) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
+func (s *Server) handleRawPacketV4(ctx context.Context, buffer []byte, peer *net.UDPAddr) {
 	// runs in a separate go routine
 	start := time.Now()
 	var message DHCPMessage
@@ -179,7 +180,7 @@ func (s *Server) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	if s.server {
-		s.handleV4Server(start, packet, peer)
+		s.handleV4Server(ctx, start, packet, peer)
 		return
 	}
 
@@ -205,8 +206,8 @@ func (s *Server) handleRawPacketV4(buffer []byte, peer *net.UDPAddr) {
 	s.sendToServer(start, server, packet.ToBytes(), peer)
 }
 
-func (s *Server) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *net.UDPAddr) {
-	reply, err := s.config.Handler.ServeDHCPv4(packet)
+func (s *Server) handleV4Server(ctx context.Context, start time.Time, packet *dhcpv4.DHCPv4, peer *net.UDPAddr) {
+	reply, err := s.config.Handler.ServeDHCPv4(ctx, packet)
 	s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if err != nil {
 		glog.Errorf("Error creating reply %s", err)
@@ -221,7 +222,7 @@ func (s *Server) handleV4Server(start time.Time, packet *dhcpv4.DHCPv4, peer *ne
 	s.logger.LogSuccess(start, nil, reply.ToBytes(), peer)
 }
 
-func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
+func (s *Server) handleRawPacketV6(ctx context.Context, buffer []byte, peer *net.UDPAddr) {
 	// runs in a separate go routine
 	start := time.Now()
 	packet, err := dhcpv6.FromBytes(buffer)
@@ -232,7 +233,7 @@ func (s *Server) handleRawPacketV6(buffer []byte, peer *net.UDPAddr) {
 	}
 
 	if s.server {
-		s.handleV6Server(start, packet, peer)
+		s.handleV6Server(ctx, start, packet, peer)
 		return
 	}
 
@@ -311,8 +312,8 @@ func (s *Server) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *
 	conn.Close()
 }
 
-func (s *Server) handleV6Server(start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
-	reply, err := s.config.Handler.ServeDHCPv6(packet)
+func (s *Server) handleV6Server(ctx context.Context, start time.Time, packet dhcpv6.DHCPv6, peer *net.UDPAddr) {
+	reply, err := s.config.Handler.ServeDHCPv6(ctx, packet)
 	s.logger.LogSuccess(start, nil, packet.ToBytes(), peer)
 	if err != nil {
 		glog.Errorf("Error creating reply %s", err)
