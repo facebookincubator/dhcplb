@@ -8,6 +8,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -29,6 +30,9 @@ var (
 func main() {
 	flag.Parse()
 	flag.Lookup("logtostderr").Value.Set("true")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	if *configPath == "" {
 		glog.Fatal("Config file is necessary")
@@ -75,5 +79,5 @@ func main() {
 	}()
 
 	glog.Infof("Starting dhcplb in v%d mode", *version)
-	glog.Fatal(server.ListenAndServe())
+	glog.Fatal(server.ListenAndServe(ctx))
 }
