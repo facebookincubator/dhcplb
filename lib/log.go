@@ -8,9 +8,10 @@
 package dhcplb
 
 import (
-	"github.com/golang/glog"
 	"net"
 	"time"
+
+	"github.com/golang/glog"
 )
 
 // LogMessage holds the info of a log line.
@@ -83,7 +84,7 @@ func (h *loggerHelper) LogSuccess(start time.Time, server *DHCPServer, packet []
 		}
 		err := h.personalizedLogger.Log(msg)
 		if err != nil {
-			glog.Errorf("Failed to log error: %s", err)
+			glog.Errorf("Failed to log success: %s", err)
 		}
 	}
 }

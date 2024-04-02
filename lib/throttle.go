@@ -79,41 +79,41 @@ func (c *Throttle) setRate(MaxRatePerItem int) {
 
 // NewThrottle returns a Throttle struct
 //
-//	Capacity:
+//	capacity:
 //	    Maximum capacity of the LRU cache
 //
-//	CacheRate (per second):
+//	cacheRate (per second):
 //	    Maximum allowed rate for adding new items to the cache. By that way it
 //	    prevents the cache invalidation to happen too soon for the existing rate
 //	    items in the cache. Cache rate will be infinite for 0 or negative values.
 //
-//	MaxRatePerItem (per second):
+//	maxRatePerItem (per second):
 //	    Maximum allowed requests rate for each key in the cache. Throttling will
 //	    be disabled for 0 or negative values. No cache will be created in that case.
-func NewThrottle(Capacity int, CacheRate int, MaxRatePerItem int) (*Throttle, error) {
-	if MaxRatePerItem <= 0 {
+func NewThrottle(capacity int, cacheRate int, maxRatePerItem int) (*Throttle, error) {
+	if maxRatePerItem <= 0 {
 		glog.Info("No throttling will be done")
 	}
 
-	cache, err := lru.New[string, *rate.Limiter](Capacity)
+	cache, err := lru.New[string, *rate.Limiter](capacity)
 	if err != nil {
 		return nil, err
 	}
 
 	// Keep track of the item creation rate.
 	var cacheLimiter *rate.Limiter
-	if CacheRate <= 0 {
+	if cacheRate <= 0 {
 		glog.Info("No cache rate limiting will be done")
 		cacheLimiter = rate.NewLimiter(rate.Inf, 1) // bucket size is ignored
 	} else {
-		cacheLimiter = rate.NewLimiter(rate.Limit(CacheRate), CacheRate)
+		cacheLimiter = rate.NewLimiter(rate.Limit(cacheRate), cacheRate)
 	}
 
 	throttle := &Throttle{
 		lru:            cache,
-		maxRatePerItem: MaxRatePerItem,
+		maxRatePerItem: maxRatePerItem,
 		cacheLimiter:   cacheLimiter,
-		cacheRate:      CacheRate,
+		cacheRate:      cacheRate,
 	}
 
 	return throttle, nil
