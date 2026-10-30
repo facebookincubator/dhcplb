@@ -1,4 +1,4 @@
-module github.com/facebook/dhcplb
+module github.com/meta/dhcplb
 
 go 1.19
 

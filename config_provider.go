@@ -10,7 +10,7 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/facebook/dhcplb/lib"
+	"github.com/meta/dhcplb/lib"
 )
 
 // DefaultConfigProvider holds configuration for the server.

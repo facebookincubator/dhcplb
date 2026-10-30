@@ -62,7 +62,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       if name == "dhcplb"
         vm.vm.synced_folder "../",
-          "/home/vagrant/go/src/github.com/facebook/dhcplb/"
+          "/home/vagrant/go/src/github.com/meta/dhcplb/"
       end
 
       vm.vm.provision :chef_solo do |chef|

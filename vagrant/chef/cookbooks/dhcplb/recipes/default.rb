@@ -4,7 +4,7 @@
 # LICENSE file in the root directory of this source tree.
 
 node.default['go']['version'] = '1.13'
-node.default['go']['packages'] = ['github.com/facebook/dhcplb']
+node.default['go']['packages'] = ['github.com/meta/dhcplb']
 
 include_recipe 'golang'
 include_recipe 'golang::packages'
